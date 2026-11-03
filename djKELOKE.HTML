@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Iceman Sounds</title>
+<style>
+:root{--ac:#12a9b8;--tx:#f4f4f8;--mu:#a6a6bb}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{margin:0;min-height:100vh;color:var(--tx);font:16px system-ui,sans-serif;background:#0b0b10;display:flex;justify-content:center;padding:20px}
+#bg{position:fixed;inset:0;background:#222 center/cover;filter:blur(70px) brightness(.45);transform:scale(1.3);z-index:-1}
+main{width:100%;max-width:400px;display:grid;gap:16px;align-content:start}
+h1{margin:0;font-size:20px;text-align:center}
+.card{background:#ffffff14;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid #ffffff22;border-radius:24px;padding:18px;display:grid;gap:14px;box-shadow:0 8px 32px #0006}
+img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:16px;background:#000;box-shadow:0 12px 40px #0008}
+button,select{font:inherit;border:0;color:var(--tx);cursor:pointer;transition:transform .15s,background .2s;border-radius:999px;padding:10px 18px;background:#ffffff1f}
+button:active{transform:scale(.94)}
+button:disabled{opacity:.4}
+button.p{background:var(--ac);color:#000;font-weight:700}
+select{border-radius:12px;width:100%}
+select option{color:#000}
+.row{display:flex;gap:14px;justify-content:center;align-items:center}
+.row button{width:54px;height:54px;padding:0;font-size:18px}
+.row button.p{width:68px;height:68px;font-size:24px}
+.bar{height:8px;background:#ffffff26;border-radius:4px;cursor:pointer;touch-action:none;position:relative}
+.bar::before{content:"";position:absolute;inset:-12px 0}
+.bar i{display:block;height:100%;background:var(--ac);width:0;border-radius:4px}
+.mu{color:var(--mu);font-size:14px}
+#go{width:100%;padding:15px;border-radius:16px}
+#t{font-size:22px}
+#t span,#dj span{display:inline-block;animation:sube .5s both}
+.dj{text-align:center;font-size:17px;line-height:1.35}
+.dj:empty{display:none}
+@keyframes sube{from{opacity:0;transform:translateY(.8em) rotate(6deg)}to{opacity:1;transform:none}}
+.vol{display:flex;align-items:center;gap:10px;font-size:14px}
+.vol input{flex:1;-webkit-appearance:none;appearance:none;height:6px;border-radius:3px;outline:none;cursor:pointer}
+.vol input::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--ac);border:0}
+.vol input::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--ac);border:0}
+.cover{position:relative}
+#pingu{position:absolute;inset:0;width:100%;height:100%;border-radius:16px;opacity:0;pointer-events:none;transition:opacity .4s}
+.cover.talk #pingu{opacity:1}
+.blobs{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none}
+.blobs i{position:absolute;width:24vmax;height:24vmax;background:radial-gradient(circle at 35% 35%,#e6fcff,#7cf4ff 60%,#38d9e0);mix-blend-mode:screen;opacity:.22;filter:blur(6px);animation:morph 14s ease-in-out infinite alternate,flota 24s ease-in-out infinite alternate}
+.blobs i:nth-child(1){top:8%;left:6%}
+.blobs i:nth-child(2){bottom:10%;right:8%;width:18vmax;height:18vmax;animation-duration:17s,28s}
+@keyframes morph{
+  0%{border-radius:60% 40% 30% 70%/60% 30% 70% 40%}
+  50%{border-radius:30% 60% 70% 40%/50% 60% 30% 60%}
+  100%{border-radius:50% 50% 40% 60%/40% 70% 40% 60%}}
+@keyframes flota{to{transform:translate(8vmax,6vmax) rotate(40deg)}}
+@media (prefers-reduced-motion:reduce){.blobs i{animation:none}}
+</style></head>
+<body><div id="bg"></div><div class="blobs"><i></i><i></i></div><main>
+<h1> 🧊 Iceman Sounds </h1>
+<div id="login" class="card" hidden>
+  <p>Entra con tu Spotify Premium.</p>
+  <button class="p" onclick="login()">Entrar con Spotify</button>
+</div>
+<div id="app" class="card" hidden>
+  <div class="cover" id="cover">
+  <img id="cv" alt="">
+  <img id="pingu" src="logo.png" alt="Iceman Sounds">
+    <defs><linearGradient id="fondo" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0b2a4a"/><stop offset="1" stop-color="#1b9aaa"/></linearGradient></defs>
+    <rect width="200" height="200" fill="url(#fondo)"/>
+    <g class="cuerpo">
+      <ellipse cx="100" cy="124" rx="50" ry="54" fill="#14213d"/>
+      <ellipse cx="100" cy="134" rx="32" ry="40" fill="#f4fbff"/>
+      <ellipse cx="54" cy="128" rx="11" ry="30" transform="rotate(15 54 128)" fill="#0f1a33"/>
+      <ellipse cx="146" cy="128" rx="11" ry="30" transform="rotate(-15 146 128)" fill="#0f1a33"/>
+      <circle cx="100" cy="76" r="38" fill="#14213d"/>
+      <circle cx="86" cy="72" r="9" fill="#fff"/><circle cx="114" cy="72" r="9" fill="#fff"/>
+      <circle cx="87" cy="73" r="4" fill="#000"/><circle cx="113" cy="73" r="4" fill="#000"/>
+      <path id="pico" d="M88 84 Q100 76 112 84 Q100 100 88 84Z" fill="#ff9f1c"/>
+      <path d="M62 78 A38 38 0 0 1 138 78" fill="none" stroke="#38d9e0" stroke-width="7" stroke-linecap="round"/>
+      <rect x="54" y="70" width="12" height="20" rx="5" fill="#38d9e0"/>
+      <rect x="134" y="70" width="12" height="20" rx="5" fill="#38d9e0"/>
+      <path d="M68 108 Q100 124 132 108 L130 120 Q100 136 70 120Z" fill="#38d9e0"/>
+      <ellipse cx="82" cy="176" rx="14" ry="6" fill="#ff9f1c"/>
+      <ellipse cx="118" cy="176" rx="14" ry="6" fill="#ff9f1c"/>
+    </g>
+  
+  </svg>
+</div>
+  <div><b id="t">—</b><div class="mu" id="a"></div></div>
+  <div class="bar"><i id="bar"></i></div>
+  <div class="row">
+    <button id="prev">⏮</button><button id="pp" class="p">▶</button><button id="next">⏭</button>
+  </div>
+  <select id="voice"></select>
+  <button id="go" class="p" disabled>🎙️ Empezar la radio</button>
+  <div class="mu" id="st">Conectando…</div>
+  <div id="dj" class="dj"></div>
+  <div class="vol"><span>🔈</span><input type="range" id="vol" min="0" max="100" value="80"><span>🔊</span></div>
+</div>
+</main>
+<script>
+// ====== CONFIG ======
+const CLIENT_ID = 'ebc79f44d84147febb9c001e862ad2d8';
+const REDIRECT = location.origin + location.pathname; // debe coincidir con el Redirect URI de Spotify
+const SCOPES = 'streaming user-read-email user-read-private user-read-playback-state user-modify-playback-state user-top-read user-read-recently-played user-library-read playlist-read-private playlist-read-collaborative';
+
+async function pages(path, max) {
+  let out = [], off = 0;
+  for (let i = 0; i < max; i++) {
+    const d = await api(path + (path.includes('?') ? '&' : '?') + 'limit=50&offset=' + off);
+    out.push(...d.items);
+    if (!d.next) break;
+    off += 50;
+  }
+  return out;
+}
+
+async function loadLib() {
+  const L = { viejas: [], playlists: [], artistas: [], top: [], descubrir: [] };
+  await safe(async () => { // guardadas hace más de 4 meses
+    const lim = Date.now() - 120 * 864e5;
+    const s = await pages('/me/tracks', 60);
+    L.viejas = s.filter(x => new Date(x.added_at) < lim).map(x => x.track).filter(esCancion);
+  });
+  await safe(async () => { // tus playlists
+    const me = await api('/me');
+    const pls = (await pages('/me/playlists', 2)).filter(p => p && (p.owner.id === me.id || p.collaborative)).slice(0, 60);
+    for (const p of pls) await safe(async () => {
+      const it = await pages(`/playlists/${p.id}/items`, 10);
+      L.playlists.push(...it.map(x => x.item || x.track).filter(esCancion));
+    });
+  });
+  await safe(async () => { // discos de tus artistas favoritos
+    const ar = (await api('/me/top/artists?time_range=long_term&limit=20')).items;
+    for (const a of shuffle(ar).slice(0, 6)) await safe(async () => {
+      const al = (await api(`/artists/${a.id}/albums?include_groups=album,single&limit=5`)).items;
+      for (const b of shuffle(al).slice(0, 2)) L.artistas.push(...(await api(`/albums/${b.id}/tracks?limit=50`)).items.filter(esCancion));
+    });
+  });
+  await safe(async () => { // tu top del último año
+    L.top = (await api('/me/top/tracks?time_range=long_term&limit=50')).items.filter(esCancion);
+  });
+  await safe(async () => { // descubrir: artistas que colaboran con los tuyos
+  const todas = Object.values(L).flat();
+  const conocidas = new Set(todas.map(t => t.uri));
+  const principales = new Set(todas.map(t => t.artists[0].id));
+  const feats = {};
+  todas.forEach(t => t.artists.slice(1).forEach(a => {
+    if (a.id && !principales.has(a.id)) feats[a.id] = a;
+  }));
+  for (const a of shuffle(Object.values(feats)).slice(0, 8)) await safe(async () => {
+    const al = (await api(`/artists/${a.id}/albums?include_groups=album,single&limit=5`)).items;
+    for (const b of shuffle(al).slice(0, 2)) {
+      const tr = (await api(`/albums/${b.id}/tracks?limit=50`)).items.filter(esCancion);
+      L.descubrir.push(...tr.filter(t => !conocidas.has(t.uri)));
+    }
+  });
+});
+await safe(async () => { // clasificar cada canción por el género de su artista
+  const generos = {};
+  for (const rango of ['long_term', 'medium_term', 'short_term']) {
+    const d = await api(`/me/top/artists?time_range=${rango}&limit=50`);
+    d.items.forEach(a => generos[a.id] = a.genres || []);
+  }
+  const todas = Object.values(L).flat();
+  const frec = {};
+  todas.forEach(t => { const id = t.artists[0].id; if (id && !(id in generos)) frec[id] = (frec[id] || 0) + 1; });
+  const ids = Object.entries(frec).sort((a, b) => b[1] - a[1]).slice(0, 120).map(e => e[0]);
+  for (const id of ids) await safe(async () => { generos[id] = (await api('/artists/' + id)).genres || []; });
+  todas.forEach(t => { t.g = grupoDe(generos[t.artists[0].id]); });
+});
+  for (const k in L) L[k] = uniq(L[k]);
+  saveLib(L);
+  return L;
+}
+
+async function probarMusica() {
+  try {
+    $('st').textContent = 'Leyendo tu música…';
+    const L = await loadLib();
+    $('st').textContent = `Encontré ${L.guardadas.length} canciones guardadas y ${L.playlists.length} de tus playlists`;
+  } catch (e) { $('st').textContent = 'Error: ' + e.message; }
+};
+// ====================
+const $ = id => document.getElementById(id), LS = localStorage;
+const MODES = {
+  long_term: 'las canciones que más has escuchado durante el último año',
+  medium_term: 'lo que más has escuchado estos seis meses',
+  short_term: 'lo que has tenido en bucle este último mes',
+  recent: 'lo último que has estado escuchando'
+};
+const b64 = b => btoa(String.fromCharCode(...new Uint8Array(b))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+async function login() {
+  const v = b64(crypto.getRandomValues(new Uint8Array(48)));
+  LS.v = v;
+  const c = b64(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(v)));
+  location = 'https://accounts.spotify.com/authorize?' + new URLSearchParams({
+    client_id: CLIENT_ID, response_type: 'code', redirect_uri: REDIRECT,
+    scope: SCOPES, code_challenge_method: 'S256', code_challenge: c
+  });
+}
+async function tokenReq(p) {
+  const r = await fetch('https://accounts.spotify.com/api/token', {
+    method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ client_id: CLIENT_ID, ...p })
+  });
+  const d = await r.json();
+  if (!d.access_token) throw new Error(JSON.stringify(d));
+  LS.at = d.access_token; LS.exp = Date.now() + d.expires_in * 1000 - 60000;
+  if (d.refresh_token) LS.rt = d.refresh_token;
+}
+async function token() {
+  if (Date.now() > Number(LS.exp)) await tokenReq({ grant_type: 'refresh_token', refresh_token: LS.rt });
+  return LS.at;
+}
+async function api(path, opt = {}) {
+  const r = await fetch('https://api.spotify.com/v1' + path, {
+    ...opt, headers: { Authorization: 'Bearer ' + await token(), 'Content-Type': 'application/json' }
+  });
+  const t = await r.text();
+  if (!r.ok) throw new Error(r.status + ' ' + t);
+  return t ? JSON.parse(t) : null;
+}
+const esCancion = t => t && t.uri && t.uri.startsWith('spotify:track:');
+
+async function pages(path, max) {
+  let out = [], off = 0;
+  for (let i = 0; i < max; i++) {
+    const d = await api(path + (path.includes('?') ? '&' : '?') + 'limit=50&offset=' + off);
+    out.push(...d.items);
+    if (!d.next) break;
+    off += 50;
+  }
+  return out;
+}
+
+
+async function probarMusica() {
+  try {
+    $('st').textContent = 'Leyendo tu música…';
+    const L = await loadLib();
+    $('st').textContent = `Encontré ${L.guardadas.length} canciones guardadas y ${L.playlists.length} de tus playlists`;
+  } catch (e) { $('st').textContent = 'Error: ' + e.message; }
+}
+// ---- Voz del DJ (voces del navegador; luego se puede cambiar por una voz IA) ----
+let voices = [];
+function loadVoices() {
+  voices = speechSynthesis.getVoices();
+  $('voice').innerHTML = voices.map((v, i) => `<option value="${i}">${v.name} (${v.lang})</option>`).join('');
+  const i = voices.findIndex(v => v.lang.startsWith('es'));
+  if (i >= 0) $('voice').value = i;
+}
+speechSynthesis.onvoiceschanged = loadVoices; loadVoices();
+const say = t => new Promise(res => {
+  const u = new SpeechSynthesisUtterance(t), v = voices[$('voice').value];
+  if (v) { u.voice = v; u.lang = v.lang; }
+  u.onend = u.onerror = res; speechSynthesis.speak(u);
+});
+
+// ---- Reproductor y lógica del DJ ----
+
+    const shuffle = a => [...a].sort(() => Math.random() - .5);
+    const uniq = a => [...new Map(a.map(t => [t.uri, t])).values()];
+    const played = () => new Set(JSON.parse(localStorage.played || '[]'));
+    const savePlayed = s => localStorage.played = JSON.stringify([...s].slice(-3000));
+    let VOL = .8;
+    const SERVER = location.port === '5500' ? 'http://127.0.0.1:3000' : location.origin;
+    const slim = t => ({ uri: t.uri, name: t.name, g: t.g, artists: t.artists.map(a => ({ id: a.id, name: a.name })) });
+    function saveLib(L) {
+  try {
+    const o = {};
+    for (const k in L) o[k] = L[k].map(slim);
+    localStorage.lib = JSON.stringify({ t: Date.now(), o });
+  } catch (e) { console.warn(e.message); }
+}
+function cachedLib() {
+  try { const c = JSON.parse(localStorage.lib); if (Date.now() - c.t < 864e5) return c.o; } catch (e) {}
+  return null;
+}
+    const FUENTES = {
+      viejas: 'canciones que guardaste hace meses y quizá habías olvidado',
+      playlists: 'canciones de tus playlists',
+      artistas: 'más música de tus artistas favoritos',
+      top: 'lo que más has escuchado este último año'
+};
+    const GRUPOS = {
+  reggaeton:   { nombre: 'reggaetón',     re: /reggaeton|urbano|trap latino|dembow|perreo/ },
+  rap:         { nombre: 'hip hop y rap', re: /hip hop|rap|trap|drill/ },
+  rnb:         { nombre: 'R&B y soul',    re: /r&b|soul|funk/ },
+  pop:         { nombre: 'pop',           re: /pop/ },
+  electronica: { nombre: 'electrónica',   re: /house|techno|electro|edm|dance/ }, 
+};
+function grupoDe(gs) {
+  const txt = (gs || []).join(' ').toLowerCase();
+  for (const k in GRUPOS) if (GRUPOS[k].re.test(txt)) return k;
+  return 'otros';
+}
+const safe = async f => { try { await f(); } catch (e) { console.warn(e.message); } };
+
+function animar(el, texto) {
+  el.textContent = '';
+  [...texto].forEach((c, i) => {
+    const s = document.createElement('span');
+    s.textContent = c === ' ' ? '\u00a0' : c;
+    s.style.animationDelay = (i * 35) + 'ms';
+    el.append(s);
+  });
+}
+
+let player, device, lib, pool = [], busy = false, started = false, lastUri = '', drag = false;
+
+async function loadPool(m) {
+  let items;
+  if (m === 'recent') items = (await api('/me/player/recently-played?limit=50')).items.map(i => i.track);
+  else items = (await api(`/me/top/tracks?time_range=${m}&limit=50`)).items;
+  const seen = new Set();
+  return items.filter(t => !seen.has(t.id) && seen.add(t.id)).sort(() => Math.random() - .5);
+}
+async function decir(batch, first, tema, texto) {
+  const r = await fetch(SERVER + '/dj', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      canciones: batch.map(t => t.name + ' de ' + t.artists[0].name),
+      modo: texto,
+      tema
+    })
+  });
+  if (!r.ok) throw new Error(await r.text());
+  const frase = decodeURIComponent(r.headers.get('X-Texto') || '');
+  const a = new Audio(URL.createObjectURL(await r.blob()));
+  a.volume = VOL;
+  if (frase) animar($('dj'), frase);
+  $('cover').classList.add('talk');
+  await new Promise(res => { a.onended = a.onerror = res; a.play().catch(res); });
+  $('dj').textContent = '';
+  $('cover').classList.remove('talk');
+}
+async function nextBatch(first) {
+  if (busy) return;   
+  busy = true;
+  try {
+  if (!lib) lib = cachedLib() || await loadLib();
+const vistas = played();
+const n = 3 + Math.floor(Math.random() * 3);
+const libre = k => lib[k].filter(t => !vistas.has(t.uri));
+const todo = shuffle(uniq(Object.values(lib).flat()).filter(t => !vistas.has(t.uri)));
+const grupos = Object.keys(GRUPOS).filter(g => todo.filter(t => t.g === g).length >= n);
+const fuentes = Object.keys(FUENTES).filter(k => libre(k).length >= n);
+let tema = 'general', texto = 'más música tuya', batch;
+const r = Math.random();
+if (r < 0.5 && fuentes.length) {            // 50 %: por origen
+  tema = fuentes[Math.floor(Math.random() * fuentes.length)];
+  texto = FUENTES[tema];
+  batch = shuffle(libre(tema)).slice(0, n);
+} else if (r < 0.85 && grupos.length) {     // 35 %: un solo estilo
+  tema = grupos[Math.floor(Math.random() * grupos.length)];
+  texto = 'canciones de ' + GRUPOS[tema].nombre;
+  batch = todo.filter(t => t.g === tema).slice(0, n);
+} else if (todo.length >= n) {              // 15 %: mezcla
+  tema = 'mezcla'; texto = 'una mezcla de todo un poco';
+  batch = todo.slice(0, n);
+} else {                                     // se acabó todo: reinicia el historial
+  vistas.clear();
+  batch = shuffle(uniq(Object.values(lib).flat())).slice(0, n);
+}
+const nuevas = libre('descubrir').filter(t => !GRUPOS[tema] || t.g === tema);
+if (nuevas.length && Math.random() < 0.4) {
+  batch[batch.length - 1] = nuevas[Math.floor(Math.random() * nuevas.length)];
+}
+batch.forEach(t => vistas.add(t.uri));
+savePlayed(vistas);
+lastUri = batch[batch.length - 1].uri;
+
+    const names = [...new Set(batch.map(t => t.artists[0].name))].slice(0, 3).join(', ');
+    if (first) await decir(batch, first, 'intro', texto);
+    await decir(batch, first, tema, texto);
+    await api('/me/player/play?device_id=' + device, { method: 'PUT', body: JSON.stringify({ uris: batch.map(t => t.uri) }) });
+    $('st').textContent = '';
+    setTimeout(() => busy = false, 2500);
+  } catch (e) { $('st').textContent = 'Error: ' + e.message; busy = false; }
+}
+function onState(s) {
+  if (!s) return;
+  const t = s.track_window.current_track;
+  if ($('t').dataset.id !== t.id) { $('t').dataset.id = t.id; animar($('t'), t.name); }
+  $('a').textContent = t.artists.map(a => a.name).join(', ');
+  if (t.album.images[0]) $('cv').src = t.album.images[0].url;
+  if (t.album.images[0]) $('bg').style.backgroundImage = `url(${t.album.images[0].url})`;
+  $('pp').textContent = s.paused ? '▶' : '⏸';
+  const ended = s.paused && s.position === 0 && s.track_window.previous_tracks.some(p => p.id === t.id);
+  if (ended && started && !busy) nextBatch(false); // acabó el bloque -> habla el DJ
+}
+function start() {
+  $('app').hidden = false;
+  window.onSpotifyWebPlaybackSDKReady = () => {
+    player = new Spotify.Player({ name: 'Iceman Sounds', getOAuthToken: async cb => cb(await token()), volume: .8 });
+    player.addListener('ready', e => { device = e.device_id; $('go').disabled = false; $('st').textContent = 'Listo. Dale al botón.'; });
+    player.addListener('authentication_error', e => { LS.clear(); $('st').textContent = 'Error de login: ' + e.message; });
+    player.addListener('account_error', e => $('st').textContent = 'Hace falta Premium: ' + e.message);
+    player.addListener('initialization_error', e => $('st').textContent = 'Error: ' + e.message);
+    player.addListener('player_state_changed', onState);
+    player.connect();
+  };
+  const s = document.createElement('script'); s.src = 'https://sdk.scdn.co/spotify-player.js'; document.body.append(s);
+  
+  setInterval(async () => {
+  const s = player && await player.getCurrentState();
+  if (!s || !s.duration) return;
+  const rest = s.duration - s.position;
+  if (!drag) $('bar').style.width = (s.position / s.duration * 100) + '%';
+  if (!s.paused) {
+    player.setVolume(VOL * Math.max(.05, Math.min(1, rest / 4000, .25 + s.position / 1500)));
+    if (started && !busy && s.track_window.current_track.uri === lastUri && rest < 1500) nextBatch(false);
+  }
+}, 250);
+
+}
+$('go').onclick = async () => { await player.activateElement(); started = true; pool = []; nextBatch(true); };
+$('prev').onclick = () => player && player.previousTrack();
+$('pp').onclick = () => player && player.togglePlay();
+$('next').onclick = async () => {
+  if (!player || busy) return;   // mientras habla el DJ, ignora el botón
+  const s = await player.getCurrentState();
+  if (started && s && s.track_window.current_track.uri === lastUri) {
+    await player.pause();
+    nextBatch(false);            // última canción: habla el DJ
+  } else {
+    player.nextTrack();          // resto de canciones: salta normal
+  }
+};
+
+const setVol = v => {
+  VOL = v / 100;
+  localStorage.vol = v;
+  $('vol').style.background = `linear-gradient(90deg,var(--ac) ${v}%,#ffffff26 ${v}%)`;
+};
+$('vol').oninput = e => setVol(e.target.value);
+$('vol').value = localStorage.vol || 80;
+setVol($('vol').value);
+
+const barBox = $('bar').parentElement;
+const seekTo = async (e, final) => {
+  const r = barBox.getBoundingClientRect();
+  const p = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
+  $('bar').style.width = p * 100 + '%';
+  if (final) { const s = await player.getCurrentState(); if (s) player.seek(Math.round(p * s.duration)); }
+};
+barBox.addEventListener('pointerdown', e => { drag = true; barBox.setPointerCapture(e.pointerId); seekTo(e, false); });
+barBox.addEventListener('pointermove', e => { if (drag) seekTo(e, false); });
+barBox.addEventListener('pointerup', e => { if (drag) { drag = false; seekTo(e, true); } });
+
+(async () => {
+  const q = new URLSearchParams(location.search), code = q.get('code');
+  if (code) {
+    try { await tokenReq({ grant_type: 'authorization_code', code, redirect_uri: REDIRECT, code_verifier: LS.v }); }
+    catch (e) { alert(e.message); }
+    history.replaceState({}, '', REDIRECT);
+  }
+  if (LS.at) start(); else $('login').hidden = false;
+})();
+</script></body></html>
