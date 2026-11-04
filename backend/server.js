@@ -131,5 +131,7 @@ app.post('/mood', async (req, res) => {
 
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, '..', 'djKELOKE.HTML')));
 app.get('/logo.png', (req, res) => res.sendFile(path.join(__dirname, '..', 'logo.png')));
-
+['manifest.json', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'].forEach(f =>
+  app.get('/' + f, (req, res) => res.sendFile(path.join(__dirname, '..', f))));
+  
 app.listen(process.env.PORT || 3000, () => console.log('Servidor listo'));

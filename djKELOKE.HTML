@@ -2,6 +2,13 @@
 <html lang="es"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Iceman Sounds</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Iceman Sounds">
+<meta name="theme-color" content="#0b0b10">
+
 <style>
 :root{--ac:#12a9b8;--tx:#f4f4f8;--mu:#a6a6bb}
 *{box-sizing:border-box}[hidden]{display:none!important}
@@ -208,6 +215,12 @@ async function pages(path, max) {
   return out;
 }
 
+if ('mediaSession' in navigator) {
+  navigator.mediaSession.setActionHandler('nexttrack', () => $('next').click());
+  navigator.mediaSession.setActionHandler('previoustrack', () => $('prev').click());
+  navigator.mediaSession.setActionHandler('seekforward', null);
+  navigator.mediaSession.setActionHandler('seekbackward', null);
+}
 
 async function probarMusica() {
   try {
