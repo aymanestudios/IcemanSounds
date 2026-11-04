@@ -358,7 +358,10 @@ async function nextBatch(first) {
   if (busy) return;   
   busy = true;
   try {
-  if (!lib) lib = cachedLib() || await loadLib();
+  if (!lib) {
+  lib = cachedLib();
+  if (!lib || !Object.values(lib).flat().some(t => GRUPOS[t.g])) lib = await loadLib();
+}
 const vistas = played();
 const n = 3 + Math.floor(Math.random() * 3);
 const libre = k => lib[k].filter(t => !vistas.has(t.uri));
