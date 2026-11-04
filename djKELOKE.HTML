@@ -54,7 +54,7 @@ select option{color:#000}
   100%{border-radius:50% 50% 40% 60%/40% 70% 40% 60%}}
 @keyframes flota{to{transform:translate(8vmax,6vmax) rotate(40deg)}}
 @media (prefers-reduced-motion:reduce){.blobs i{animation:none}}
-html{background:#0b0b10}
+
 </style></head>
 <body><div id="bg"></div><div class="blobs"><i></i><i></i></div><main>
 <h1> 🧊 Iceman Sounds </h1>
@@ -97,12 +97,14 @@ async function pages(path, max) {
 }
 
 async function loadLib() {
-  const L = { viejas: [], playlists: [], artistas: [], top: [], descubrir: [] };
+  const L = { viejas: [], playlists: [], artistas: [], top: [], descubrir: [], recientes: [] };
   await safe(async () => { // guardadas hace más de 4 meses
     const lim = Date.now() - 120 * 864e5;    // guardadas hace más de 4 meses
     const tope = Date.now() - 540 * 864e5;   // y menos de 18 meses
     const s = await pages('/me/tracks', 60);
     L.viejas = s.filter(x => { const d = new Date(x.added_at); return d < lim && d > tope; }).map(x => x.track).filter(esCancion);
+    const nuevo = Date.now() - 21 * 864e5;   // guardadas en los últimos 30 días
+    L.recientes = s.filter(x => new Date(x.added_at) > nuevo).map(x => x.track).filter(esCancion);
   });
   await safe(async () => { // tus playlists
     const me = await api('/me');
@@ -287,7 +289,8 @@ function cachedLib() {
       viejas: 'canciones que guardaste hace meses y quizá habías olvidado',
       playlists: 'canciones de tus playlists',
       artistas: 'más música de tus artistas favoritos',
-      top: 'lo que más has escuchado este último año'
+      top: 'lo que más has escuchado este último año',
+      recientes: 'canciones que has guardado hace poco',
 };
     const GRUPOS = {
   reggaeton:   { nombre: 'reggaetón',     re: /reggaeton|urbano|trap latino|dembow|perreo/ },
@@ -365,7 +368,7 @@ const fuentes = Object.keys(FUENTES).filter(k => libre(k).length >= n);
 let tema = 'general', texto = 'más música tuya', batch;
 const r = Math.random();
 if (r < 0.5 && fuentes.length) {            // 50 %: por origen
-  tema = fuentes[Math.floor(Math.random() * fuentes.length)];
+  tema = (fuentes.includes('recientes') && Math.random() < 0.4) ? 'recientes' : fuentes[Math.floor(Math.random() * fuentes.length)];
   texto = FUENTES[tema];
 const pool = shuffle(libre(tema));
 const gs = Object.keys(GRUPOS).filter(g => pool.filter(t => t.g === g).length >= n);

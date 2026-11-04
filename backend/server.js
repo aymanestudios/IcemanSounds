@@ -31,7 +31,7 @@ const FRASES = {                  // frases guardadas por tema: se generan UNA v
   playlists: ['Ahora, un poquito de lo mejor de tus playlists.', 'Vamos con canciones de tus propias listas.'],
   artistas:  ['Ahora, más música de tus artistas favoritos.', 'Vamos a profundizar en los artistas que más te gustan.'],
   top:       ['Ahora, lo que más has escuchado durante este último año.', 'Vamos con tus canciones más repetidas del año.'],
-
+  recientes: ['Ahora, lo último que has guardado en tus favoritas.', 'Vamos con lo más reciente de tus Me gusta.', 'Ahora, canciones que acabas de añadir a tus favoritas.'],
 };
 const MOODS = {
   noche: 'conducir de noche (R&B, soul, ambiente nocturno)',
@@ -65,7 +65,7 @@ async function claude(system, user, max) {
   const r = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-    body: JSON.stringify({ model: 'claude-haiku-5-5', max_tokens: max, system, messages: [{ role: 'user', content: user }] })
+    body: JSON.stringify({ model: 'claude-haiku-5-5', max_tokens: max, thinking: { type: 'disabled' }, system, messages: [{ role: 'user', content: user }] })
   });
   if (!r.ok) throw new Error('Claude: ' + await r.text());
   const data = await r.json();
