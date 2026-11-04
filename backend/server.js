@@ -11,7 +11,7 @@ const cors = require('cors');
 
 // ====== AJUSTES QUE PUEDES CAMBIAR ======
 const NOMBRE = 'Iceman Sounds';       // el nombre de tu DJ (si lo cambias, se generan intros nuevas)
-const PROB_PERSONALIZADA = 0.15;  // % de veces que habla Claude con datos reales (solo si hay clave de Anthropic)
+const PROB_PERSONALIZADA = 0.05;  // % de veces que habla Claude con datos reales (solo si hay clave de Anthropic)
 const FRASES = {                  // frases guardadas por tema: se generan UNA vez y se reutilizan
   // Intros: una de ellas suena siempre al empezar la sesión
   intro: [
@@ -31,10 +31,7 @@ const FRASES = {                  // frases guardadas por tema: se generan UNA v
   playlists: ['Ahora, un poquito de lo mejor de tus playlists.', 'Vamos con canciones de tus propias listas.'],
   artistas:  ['Ahora, más música de tus artistas favoritos.', 'Vamos a profundizar en los artistas que más te gustan.'],
   top:       ['Ahora, lo que más has escuchado durante este último año.', 'Vamos con tus canciones más repetidas del año.'],
-  noche:     ['Esta noche toca carretera y buena música.', 'Canciones perfectas para conducir de noche.', 'Luces de ciudad, ventanillas bajadas y esta música.'],
-  triste:    ['Hoy te noto más bajo de ánimo, así que te acompaño con música tranquila.', 'Hay días para sentirlo todo, y esta música va contigo.', 'Vamos con algo más suave para acompañar el momento.'],
-  energia:   ['Vamos a subir esa energía, ¡arriba!', 'Ahora toca moverse, que esto se anima.', 'Prepárate, que viene música con fuerza.'],
-  chill:     ['Respira hondo, que vienen canciones tranquilas.', 'Ahora toca relajarse y dejarse llevar.', 'Un rato de calma con buena música.']
+
 };
 const MOODS = {
   noche: 'conducir de noche (R&B, soul, ambiente nocturno)',
@@ -71,7 +68,10 @@ async function claude(system, user, max) {
     body: JSON.stringify({ model: 'claude-haiku-5-5', max_tokens: max, system, messages: [{ role: 'user', content: user }] })
   });
   if (!r.ok) throw new Error('Claude: ' + await r.text());
-  return (await r.json()).content[0].text;
+  const data = await r.json();
+const bloque = data.content.find(b => b.type === 'text');
+if (!bloque) throw new Error('Claude no devolvió texto (' + data.stop_reason + ')');
+return bloque.text;
 }
 
 async function vozDe(texto) { // esto es lo que gasta créditos de ElevenLabs
@@ -101,7 +101,7 @@ app.post('/dj', async (req, res) => {
     // Frase personalizada con Claude (solo si hay clave y nunca en la intro)
     if (tema !== 'intro' && process.env.ANTHROPIC_API_KEY && Math.random() < PROB_PERSONALIZADA) {
       try {
-        texto = await claude(SYS_DJ, `Vas a poner ${modo}. Las próximas canciones son: ${canciones.join(', ')}.`, 150);
+        texto = await claude(SYS_DJ, `Vas a poner ${modo}. Las próximas canciones son: ${canciones.join(', ')}.`, 400);
         console.log('DJ dice (personalizada):', texto);
         audio = await vozDe(texto);
       } catch (e) { console.warn('Personalizada falló, uso frase guardada:', e.message); audio = null; texto = ''; }
@@ -124,7 +124,7 @@ app.post('/mood', async (req, res) => {
     const { mood, n, canciones } = req.body;
     const txt = await claude('Eliges canciones para un DJ. Responde SOLO con un array JSON de números, sin texto.',
       `Elige las ${n} canciones que mejor encajan para ${MOODS[mood]}. Lista numerada desde 0:\n` +
-      canciones.map((c, i) => i + ': ' + c).join('\n'), 100);
+      canciones.map((c, i) => i + ': ' + c).join('\n'), 300);
     res.json({ indices: JSON.parse(txt.match(/\[[\d,\s]*\]/)[0]) });
   } catch (e) { console.error(e); res.status(500).send(e.message); }
 });
@@ -133,5 +133,17 @@ app.get('/', (req, res) => res.sendFile(path.join(__dirname, '..', 'djKELOKE.HTM
 app.get('/logo.png', (req, res) => res.sendFile(path.join(__dirname, '..', 'logo.png')));
 ['manifest.json', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'].forEach(f =>
   app.get('/' + f, (req, res) => res.sendFile(path.join(__dirname, '..', f))));
-  
+
+  app.post('/generos', async (req, res) => {
+  try {
+    const { artistas } = req.body;
+    const txt = await claude(
+      'Clasificas artistas musicales por estilo. Responde SOLO con un objeto JSON {"nombre":"estilo"}, sin texto extra. ' +
+      'Estilos permitidos: reggaeton, rap, rnb, pop, electronica, otros. Usa exactamente los nombres que te doy.',
+      'Clasifica cada artista en su estilo principal (reggaeton incluye música urbana latina y trap latino; rap incluye hip hop y trap; rnb incluye soul):\n' + artistas.join('\n'),
+      3000);
+    res.json(JSON.parse(txt.match(/\{[\s\S]*\}/)[0]));
+  } catch (e) { console.error(e); res.status(500).send(e.message); }
+});
+
 app.listen(process.env.PORT || 3000, () => console.log('Servidor listo'));

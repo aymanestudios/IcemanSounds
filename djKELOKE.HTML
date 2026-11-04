@@ -1,18 +1,18 @@
 <!doctype html>
 <html lang="es"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Iceman Sounds</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Iceman Sounds">
 <meta name="theme-color" content="#0b0b10">
 
 <style>
 :root{--ac:#12a9b8;--tx:#f4f4f8;--mu:#a6a6bb}
 *{box-sizing:border-box}[hidden]{display:none!important}
-body{margin:0;min-height:100vh;color:var(--tx);font:16px system-ui,sans-serif;background:#0b0b10;display:flex;justify-content:center;padding:20px}
+body{margin:0;min-height:100vh;color:var(--tx);font:16px system-ui,sans-serif;background:#0b0b10;display:flex;justify-content:center;padding:calc(20px + env(safe-area-inset-top)) 20px calc(20px + env(safe-area-inset-bottom))}
 #bg{position:fixed;inset:0;background:#222 center/cover;filter:blur(70px) brightness(.45);transform:scale(1.3);z-index:-1}
 main{width:100%;max-width:400px;display:grid;gap:16px;align-content:start}
 h1{margin:0;font-size:20px;text-align:center}
@@ -137,18 +137,23 @@ async function loadLib() {
     }
   });
 });
-await safe(async () => { // clasificar cada canción por el género de su artista
-  const generos = {};
-  for (const rango of ['long_term', 'medium_term', 'short_term']) {
-    const d = await api(`/me/top/artists?time_range=${rango}&limit=50`);
-    d.items.forEach(a => generos[a.id] = a.genres || []);
-  }
+await safe(async () => { // Claude clasifica a los artistas por estilo
   const todas = Object.values(L).flat();
-  const frec = {};
-  todas.forEach(t => { const id = t.artists[0].id; if (id && !(id in generos)) frec[id] = (frec[id] || 0) + 1; });
-  const ids = Object.entries(frec).sort((a, b) => b[1] - a[1]).slice(0, 120).map(e => e[0]);
-  for (const id of ids) await safe(async () => { generos[id] = (await api('/artists/' + id)).genres || []; });
-  todas.forEach(t => { t.g = grupoDe(generos[t.artists[0].id]); });
+  const cuenta = {};
+  todas.forEach(t => { const n = t.artists[0].name; cuenta[n] = (cuenta[n] || 0) + 1; });
+  const nombres = Object.keys(cuenta).sort((a, b) => cuenta[b] - cuenta[a]).slice(0, 400);
+  const mapa = JSON.parse(localStorage.generosArtistas || '{}');
+  const faltan = nombres.filter(n => !(n in mapa));
+  for (let i = 0; i < faltan.length; i += 100) {
+    const r = await fetch(SERVER + '/generos', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ artistas: faltan.slice(i, i + 100) })
+    });
+    if (!r.ok) throw new Error(await r.text());
+    Object.assign(mapa, await r.json());
+    localStorage.generosArtistas = JSON.stringify(mapa);   // se guarda según avanza
+  }
+  todas.forEach(t => { const g = mapa[t.artists[0].name]; t.g = GRUPOS[g] ? g : 'otros'; });
 });
   for (const k in L) L[k] = uniq(L[k]);
   saveLib(L);
@@ -214,6 +219,18 @@ async function pages(path, max) {
     off += 50;
   }
   return out;
+}
+
+async function reproducir(uris) {
+  const play = () => api('/me/player/play?device_id=' + device, { method: 'PUT', body: JSON.stringify({ uris }) });
+  try { await play(); }
+  catch (e) {
+    if (!String(e.message).startsWith('404')) throw e;
+    // despierta el reproductor y reintenta
+    await api('/me/player', { method: 'PUT', body: JSON.stringify({ device_ids: [device], play: false }) });
+    await new Promise(r => setTimeout(r, 1000));
+    await play();
+  }
 }
 
 if ('mediaSession' in navigator) {
@@ -346,14 +363,14 @@ const grupos = Object.keys(GRUPOS).filter(g => todo.filter(t => t.g === g).lengt
 const fuentes = Object.keys(FUENTES).filter(k => libre(k).length >= n);
 let tema = 'general', texto = 'más música tuya', batch;
 const r = Math.random();
-if (r < 0.5 && fuentes.length) {            // 50 %: por origen
+if (r < 0.55 && fuentes.length) {            // 50 %: por origen
   tema = fuentes[Math.floor(Math.random() * fuentes.length)];
   texto = FUENTES[tema];
 const pool = shuffle(libre(tema));
 const gs = Object.keys(GRUPOS).filter(g => pool.filter(t => t.g === g).length >= n);
 const g = gs[Math.floor(Math.random() * gs.length)];
 batch = (g ? pool.filter(t => t.g === g) : pool).slice(0, n);
-} else if (r < 0.85 && grupos.length) {     // 35 %: un solo estilo
+} else if (r < 0.8 && grupos.length) {     // 35 %: un solo estilo
   tema = grupos[Math.floor(Math.random() * grupos.length)];
   texto = 'canciones de ' + GRUPOS[tema].nombre;
   batch = todo.filter(t => t.g === tema).slice(0, n);
@@ -375,7 +392,7 @@ lastUri = batch[batch.length - 1].uri;
     const names = [...new Set(batch.map(t => t.artists[0].name))].slice(0, 3).join(', ');
     if (first) await decir(batch, first, 'intro', texto);
     await decir(batch, first, tema, texto);
-    await api('/me/player/play?device_id=' + device, { method: 'PUT', body: JSON.stringify({ uris: batch.map(t => t.uri) }) });
+    await reproducir(batch.map(t => t.uri));
     $('st').textContent = '';
     setTimeout(() => busy = false, 2500);
   } catch (e) { $('st').textContent = 'Error: ' + e.message; busy = false; }
@@ -400,8 +417,10 @@ function start() {
     player.addListener('account_error', e => $('st').textContent = 'Hace falta Premium: ' + e.message);
     player.addListener('initialization_error', e => $('st').textContent = 'Error: ' + e.message);
     player.addListener('player_state_changed', onState);
+    player.addListener('not_ready', () => { $('st').textContent = 'Reconectando…'; player.connect(); });
     player.connect();
   };
+
   const s = document.createElement('script'); s.src = 'https://sdk.scdn.co/spotify-player.js'; document.body.append(s);
   
   setInterval(async () => {
