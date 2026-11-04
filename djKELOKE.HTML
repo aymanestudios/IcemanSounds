@@ -69,7 +69,7 @@ select option{color:#000}
   <div><b id="t">—</b><div class="mu" id="a"></div></div>
   <div class="bar"><i id="bar"></i></div>
   <div class="row">
-    <button id="prev">⏮</button><button id="pp" class="p">▶</button><button id="next">⏭</button>
+    <button id="prev">⏮</button><button id="pp" class="p">▶</button><button id="next">⏭</button><button id="ban" title="No quiero volver a oír esta">🚫</button>
   </div>
   <select id="voice"></select>
   <button id="go" class="p" disabled>🎙️ Empezar la radio</button>
@@ -98,9 +98,10 @@ async function pages(path, max) {
 async function loadLib() {
   const L = { viejas: [], playlists: [], artistas: [], top: [], descubrir: [] };
   await safe(async () => { // guardadas hace más de 4 meses
-    const lim = Date.now() - 120 * 864e5;
+    const lim = Date.now() - 120 * 864e5;    // guardadas hace más de 4 meses
+    const tope = Date.now() - 540 * 864e5;   // y menos de 18 meses
     const s = await pages('/me/tracks', 60);
-    L.viejas = s.filter(x => new Date(x.added_at) < lim).map(x => x.track).filter(esCancion);
+    L.viejas = s.filter(x => { const d = new Date(x.added_at); return d < lim && d > tope; }).map(x => x.track).filter(esCancion);
   });
   await safe(async () => { // tus playlists
     const me = await api('/me');
@@ -248,7 +249,7 @@ const say = t => new Promise(res => {
 
     const shuffle = a => [...a].sort(() => Math.random() - .5);
     const uniq = a => [...new Map(a.map(t => [t.uri, t])).values()];
-    const played = () => new Set(JSON.parse(localStorage.played || '[]'));
+    const played = () => new Set([...JSON.parse(localStorage.played || '[]'), ...JSON.parse(localStorage.blocked || '[]')]);
     const savePlayed = s => localStorage.played = JSON.stringify([...s].slice(-3000));
     let VOL = .8;
     const SERVER = location.port === '5500' ? 'http://127.0.0.1:3000' : location.origin;
@@ -296,6 +297,15 @@ function animar(el, texto) {
 
 let player, device, lib, pool = [], busy = false, started = false, lastUri = '', drag = false;
 
+$('ban').onclick = async () => {
+  const s = player && await player.getCurrentState();
+  if (!s) return;
+  const b = new Set(JSON.parse(localStorage.blocked || '[]'));
+  b.add(s.track_window.current_track.uri);
+  localStorage.blocked = JSON.stringify([...b]);
+  $('next').click();
+};
+
 async function loadPool(m) {
   let items;
   if (m === 'recent') items = (await api('/me/player/recently-played?limit=50')).items.map(i => i.track);
@@ -339,7 +349,10 @@ const r = Math.random();
 if (r < 0.5 && fuentes.length) {            // 50 %: por origen
   tema = fuentes[Math.floor(Math.random() * fuentes.length)];
   texto = FUENTES[tema];
-  batch = shuffle(libre(tema)).slice(0, n);
+const pool = shuffle(libre(tema));
+const gs = Object.keys(GRUPOS).filter(g => pool.filter(t => t.g === g).length >= n);
+const g = gs[Math.floor(Math.random() * gs.length)];
+batch = (g ? pool.filter(t => t.g === g) : pool).slice(0, n);
 } else if (r < 0.85 && grupos.length) {     // 35 %: un solo estilo
   tema = grupos[Math.floor(Math.random() * grupos.length)];
   texto = 'canciones de ' + GRUPOS[tema].nombre;
@@ -351,7 +364,7 @@ if (r < 0.5 && fuentes.length) {            // 50 %: por origen
   vistas.clear();
   batch = shuffle(uniq(Object.values(lib).flat())).slice(0, n);
 }
-const nuevas = libre('descubrir').filter(t => !GRUPOS[tema] || t.g === tema);
+const nuevas = libre('descubrir').filter(t => tema === 'mezcla' || t.g === batch[0].g);
 if (nuevas.length && Math.random() < 0.4) {
   batch[batch.length - 1] = nuevas[Math.floor(Math.random() * nuevas.length)];
 }
