@@ -54,6 +54,7 @@ select option{color:#000}
   100%{border-radius:50% 50% 40% 60%/40% 70% 40% 60%}}
 @keyframes flota{to{transform:translate(8vmax,6vmax) rotate(40deg)}}
 @media (prefers-reduced-motion:reduce){.blobs i{animation:none}}
+html{background:#0b0b10}
 </style></head>
 <body><div id="bg"></div><div class="blobs"><i></i><i></i></div><main>
 <h1> 🧊 Iceman Sounds </h1>
@@ -363,14 +364,14 @@ const grupos = Object.keys(GRUPOS).filter(g => todo.filter(t => t.g === g).lengt
 const fuentes = Object.keys(FUENTES).filter(k => libre(k).length >= n);
 let tema = 'general', texto = 'más música tuya', batch;
 const r = Math.random();
-if (r < 0.55 && fuentes.length) {            // 50 %: por origen
+if (r < 0.5 && fuentes.length) {            // 50 %: por origen
   tema = fuentes[Math.floor(Math.random() * fuentes.length)];
   texto = FUENTES[tema];
 const pool = shuffle(libre(tema));
 const gs = Object.keys(GRUPOS).filter(g => pool.filter(t => t.g === g).length >= n);
 const g = gs[Math.floor(Math.random() * gs.length)];
 batch = (g ? pool.filter(t => t.g === g) : pool).slice(0, n);
-} else if (r < 0.8 && grupos.length) {     // 35 %: un solo estilo
+} else if (r < 0.85 && grupos.length) {     // 35 %: un solo estilo
   tema = grupos[Math.floor(Math.random() * grupos.length)];
   texto = 'canciones de ' + GRUPOS[tema].nombre;
   batch = todo.filter(t => t.g === tema).slice(0, n);
