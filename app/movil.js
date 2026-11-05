@@ -169,30 +169,36 @@
   if (modoMando) setInterval(() => { if (!document.hidden) sondear(); }, 1500);
 
   // ---------- Al bloquear o salir: cola de seguridad para que no se pare la música ----------
+  // iOS congela la página en cuanto sales: por eso es lo PRIMERO que se hace (sin esperar nada) y con peticiones
+  // "keepalive", que el sistema deja terminar aunque la página ya esté congelada.
   let colaEn = false, ultimaCola = 0;
+  const nota = (ok, motivo) => { try { localStorage.colchon = JSON.stringify({ t: Date.now(), ok, motivo }); } catch (e) {} };
   async function colchon() {
-    if (colaEn || Date.now() - ultimaCola < 10 * 60 * 1000) return;
-    if (!(hay('started') && get('started')) || !(hay('lib') && get('lib')) || !(hay('device') && get('device'))) return;
+    if (colaEn || Date.now() - ultimaCola < 3 * 60 * 1000) return;
+    if (!(hay('started') && get('started'))) return;
+    if (!(hay('lib') && get('lib')) || !(hay('device') && get('device'))) { nota(0, 'sin biblioteca o reproductor'); return; }
     colaEn = true;
     try {
-      const sNow = await estadoActual();
-      if (!sNow || sNow.paused) return;            // si no está sonando, no hace falta
-      ultimaCola = Date.now();
-      const L = get('lib'), vistas = get('played')();
+      const L = get('lib'), vistas = get('played')(), dev = get('device');
       const todo = get('shuffle')(get('uniq')(Object.values(L).flat()).filter((t) => !vistas.has(t.uri)));
-      const gs = Object.keys(get('GRUPOS')).filter((g) => todo.filter((t) => t.g === g).length >= 4);
+      const gs = get('shuffle')(Object.keys(get('GRUPOS')).filter((g) => todo.filter((t) => t.g === g).length >= 4));
       const lista = [];
-      const g1 = gs[Math.floor(Math.random() * gs.length)];
-      if (g1) lista.push(...todo.filter((t) => t.g === g1).slice(0, 4));
-      const g2 = gs.filter((g) => g !== g1)[0];
-      lista.push(...(g2 ? todo.filter((t) => t.g === g2).slice(0, 4) : todo.filter((t) => !lista.includes(t)).slice(0, 4)));
-      const puestas = [];
-      for (const t of lista) {
-        try { await api('/me/player/queue?uri=' + encodeURIComponent(t.uri) + '&device_id=' + encodeURIComponent(get('device')), { method: 'POST' }); puestas.push(t.uri); }
-        catch (e) { break; }
-      }
-      if (puestas.length) { const v = get('played')(); puestas.forEach((u) => v.add(u)); get('savePlayed')(v); }
-    } catch (e) { console.warn('cola:', e.message); } finally { colaEn = false; }
+      gs.slice(0, 3).forEach((g) => lista.push(...todo.filter((t) => t.g === g).slice(0, 4)));
+      if (lista.length < 8) lista.push(...todo.filter((t) => !lista.includes(t)).slice(0, 12 - lista.length));
+      if (!lista.length) { nota(0, 'no quedan canciones nuevas'); return; }
+     
+      ultimaCola = Date.now();
+      // todas a la vez y con keepalive (la función api de la página pasa estas opciones tal cual a fetch)
+      const res = await Promise.all(lista.map((t) =>
+        api('/me/player/queue?uri=' + encodeURIComponent(t.uri) + '&device_id=' + encodeURIComponent(dev), { method: 'POST', keepalive: true })
+          .then(() => 204, (e) => (String(e.message).match(/^\d+/) || [0])[0])));
+      const puestas = lista.filter((t, i) => res[i] >= 200 && res[i] < 300);
+      if (puestas.length) {
+        const v = get('played')(); puestas.forEach((t) => v.add(t.uri)); get('savePlayed')(v);
+        asignar('lastUri', JSON.stringify(puestas[puestas.length - 1].uri));   // para que al acabar la cola vuelva a hablar el DJ
+      } else ultimaCola = 0;
+      nota(puestas.length, puestas.length ? 'ok' : 'Spotify rechazó la cola (' + res[0] + ')');
+    } catch (e) { console.warn('cola:', e.message); nota(0, e.message); ultimaCola = 0; } finally { colaEn = false; }
   }
   async function estadoActual() {
     try {
@@ -207,6 +213,10 @@
   async function revisarAlVolver() {
     const hueco = Date.now() - ocultoDesde;
     await dormir(1200);                             // damos tiempo al reproductor a despertar
+    try {
+      const c = JSON.parse(localStorage.colchon || 'null');
+      if (c && Date.now() - c.t < 6 * 3600 * 1000) { estado(c.ok ? 'Al salir dejé ' + c.ok + ' canciones en cola para que no se parase.' : 'Al salir no pude dejar cola: ' + c.motivo); setTimeout(() => { const e = $$('st'); if (e && /^Al salir/.test(e.textContent)) e.textContent = ''; }, 6000); localStorage.removeItem('colchon'); }
+    } catch (e) {}
     if (!(hay('started') && get('started')) || (hay('busy') && get('busy')) || !hay('nextBatch')) return;
     const s = await estadoActual();
     const t = s && s.track_window && s.track_window.current_track;
