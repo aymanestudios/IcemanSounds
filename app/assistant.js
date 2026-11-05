@@ -193,6 +193,7 @@
   }
   $$('asForm').onsubmit = (e) => { e.preventDefault(); enviar(input.value); };
 
-  // Módulos adicionales (perfil de gustos). Si no cargan, el asistente sigue funcionando.
-  ['profile.js'].forEach((f) => { const s = document.createElement('script'); s.src = SRV() + '/app/' + f; document.body.append(s); });
+  // Módulos adicionales (modo móvil y perfil de gustos). Si no cargan, el asistente sigue funcionando.
+  // (movil.js va primero: en móvil sustituye el reproductor, y el perfil debe engancharse al definitivo)
+  ['movil.js', 'profile.js'].forEach((f) => { const s = document.createElement('script'); s.async = false; s.src = SRV() + '/app/' + f; document.body.append(s); });
 })();

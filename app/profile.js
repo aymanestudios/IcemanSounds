@@ -91,13 +91,12 @@
       pintarCorazon();
     } else { cur.dur = s.duration; cur.max = Math.max(cur.max, s.position); }
   }
-  let enganchado = false;
+  let enganchado = null;   // el reproductor al que estamos enganchados (puede cambiar: en móvil se sustituye)
   setInterval(async () => {
     try {
-      if (!enganchado && hay('player') && get('player') && get('player').addListener) {
-        get('player').addListener('player_state_changed', enEstado); enganchado = true;
-      }
-      if (enganchado) enEstado(await get('player').getCurrentState());
+      const pl = hay('player') && get('player');
+      if (pl && pl.addListener && enganchado !== pl) { pl.addListener('player_state_changed', enEstado); enganchado = pl; }
+      if (enganchado) enEstado(await enganchado.getCurrentState());
     } catch (e) {}
   }, 1000);
 
