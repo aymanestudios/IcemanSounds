@@ -74,6 +74,9 @@
     return lista[lista.length - 1];
   }
 
+  // si hay un ambiente elegido (arco.js), él lleva el estilo; aquí solo quedan descubrimientos y antiguas
+  const arcoManda = () => { try { return !!(window.IcemanArco && window.IcemanArco.modo() !== 'libre'); } catch (e) { return false; } };
+
   // ---------- Decidir el bloque ----------
   function planificar(batch) {
     if (apagado() || !Array.isArray(batch) || batch.length < 2 || !hay('lib') || !get('lib')) return null;
@@ -89,7 +92,7 @@
     let racha = 1; for (let i = M.bl.length - 1; i >= 0 && M.bl[i].e === g; i--) racha++;
     let estrategia = 'mantener', objetivo = null;
     const p = racha >= 4 ? P_RACHA[4] : (P_RACHA[racha] || 0);
-    if (g && Math.random() < p) {
+    if (g && Math.random() < p && !arcoManda()) {
       const viable = (k) => k !== g && !aj.menos.includes(k) && disp.filter((t) => t.g === k).length >= n;
       if (racha >= 3 && Math.random() < 0.6) { const c = (PUENTES[g] || []).filter(viable); if (c.length) { objetivo = pesado(c, aj.mas); estrategia = 'derivar'; } }
       if (!objetivo) {
