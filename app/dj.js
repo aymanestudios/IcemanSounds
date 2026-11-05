@@ -87,16 +87,20 @@
     // devuelve true si el DJ se encarga (para que no salga el aviso de siempre)
     reaccionSaltos(generos) {
       if (!listo() || Date.now() - ultimoSaltos < MIN_ENTRE_SALTOS) return false;
+      if (hay('busy') && get('busy')) return false;    // ya está arrancando un bloque (p. ej. al saltar la última canción): no nos metemos en medio
       const ahora = Date.now();
       pendiente = ahora - ultimoSaltos < 10 * 60 * 1000 ? 'saltos_repetido' : 'saltos';   // 2.ª vez en poco tiempo: te anima a usar el chat
       ultimoSaltos = ahora;
       window.__cambioDe = { g: [...new Set((generos || []).filter(Boolean))], t: ahora };   // el perfil evita ese estilo en el próximo bloque
       (async () => {
         try {
-          // si el DJ acaba de empezar a hablar o un bloque está arrancando, esperamos a que acabe (hasta 8 s)
-          for (let i = 0; i < 16 && hay('busy') && get('busy'); i++) await new Promise((r) => setTimeout(r, 500));
+          const s = await get('player').getCurrentState();
+          const t = s && s.track_window && s.track_window.current_track;
           if (hay('busy') && get('busy')) { pendiente = null; return; }
-          await get('player').pause(); get('nextBatch')(false);
+          if (t && t.uri === get('lastUri')) return;   // es la última del bloque: el siguiente ya viene y el DJ lo comenta ahí
+          await get('player').pause();
+          if (hay('busy') && get('busy')) return;
+          get('nextBatch')(false);
         } catch (e) { console.warn('DJ extra:', e.message); }
       })();
       return true;

@@ -11,4 +11,14 @@
   const css = document.createElement('link');
   css.rel = 'stylesheet'; css.href = base + '/app/tema.css';
   document.head.append(fuente, css);
+
+  // Pequeños retoques de texto (sin tocar la lógica de la web)
+  const $$ = (id) => document.getElementById(id);
+  const h1 = document.querySelector('h1'); if (h1) h1.textContent = 'Iceman Sounds';              // el cubo ahora es un icono propio
+  const go = $$('go'); if (go) go.textContent = 'Empezar la radio';                                 // sin emoticono
+  const pp = $$('pp');                                                                                // ▶ / ⏸ -> icono de play o pausa
+  if (pp) {
+    const sync = () => { pp.dataset.e = pp.textContent.trim() === '⏸' ? 'pausa' : 'play'; };
+    new MutationObserver(sync).observe(pp, { childList: true, characterData: true, subtree: true }); sync();
+  }
 })();

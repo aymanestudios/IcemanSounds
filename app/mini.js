@@ -30,13 +30,22 @@
   button{flex:1;min-width:0;height:34px;border:0;border-radius:999px;background:#ffffff1c;color:#fff;font-size:15px;cursor:pointer}
   button.p{background:#12a9b8;color:#04161a}button:active{transform:scale(.94)}`;
 
+  // Si el diseño nuevo está activo, la ventanita usa los mismos iconos propios (si no, queda con emoticonos)
+  const iconos = () => {
+    const v = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+    const I = {}; ['prev', 'play', 'pause', 'next', 'mic', 'ban'].forEach((k) => { I[k] = v('--i-' + k); });
+    if (!I.prev) return '';
+    return `button{font-size:0;display:grid;place-items:center;place-content:center}button::before{content:"";width:16px;height:16px;background:currentColor;-webkit-mask:var(--i) center/contain no-repeat;mask:var(--i) center/contain no-repeat}
+    #prev{--i:${I.prev}}#next{--i:${I.next}}#pp{--i:${I.play}}#pp[data-e=pausa]{--i:${I.pause}}#art{--i:${I.mic}}#ban{--i:${I.ban}}`;
+  };
+
   let ventana = null, reloj = null;
 
   async function abrir() {
     const w = await window.documentPictureInPicture.requestWindow({ width: 360, height: 150 });
     ventana = w;
     const d = w.document;
-    const st = d.createElement('style'); st.textContent = ESTILO; d.head.append(st);
+    const st = d.createElement('style'); st.textContent = ESTILO + iconos(); d.head.append(st);
     d.title = 'Iceman Sounds';
     d.body.innerHTML = '<img id="c" alt=""><div class="x"><div class="t" id="t">—</div><div class="a" id="a"></div><div class="b" id="b"><i id="i"></i></div>' +
       '<div class="r"><button id="prev" title="Anterior">⏮</button><button id="pp" class="p" title="Pausa o play">▶</button><button id="next" title="Siguiente">⏭</button><button id="art" title="Un bloque de este artista">🎤</button><button id="ban" title="No volver a poner esta">🚫</button></div></div>';
@@ -57,7 +66,7 @@
         q('t').textContent = t.name; q('a').textContent = t.artists.map((x) => x.name).join(', ');
         const im = t.album && t.album.images && t.album.images[0];
         if (im && q('c').src !== im.url) q('c').src = im.url;
-        q('pp').textContent = s.paused ? '▶' : '⏸';
+        q('pp').textContent = s.paused ? '▶' : '⏸'; q('pp').dataset.e = s.paused ? 'play' : 'pausa';
         dur = s.duration || 0;
         q('i').style.width = dur ? (s.position / dur * 100) + '%' : '0';
       } catch (e) {}
