@@ -213,5 +213,5 @@
 
   // Módulos adicionales (privacidad, modo móvil y preferencias). Si no cargan, el asistente sigue funcionando.
   // (movil.js va primero: en móvil sustituye el reproductor, y el perfil debe engancharse al definitivo)
-  ['privacidad.js', 'tema.js', 'movil.js', 'afro.js', 'bloques.js', 'profile.js', 'favoritos.js', 'dj.js', 'conciertos.js', 'artista.js', 'mini.js'].forEach((f) => { const s = document.createElement('script'); s.async = false; s.src = SRV() + '/app/' + f; document.body.append(s); });
+  ['privacidad.js', 'tema.js', 'movil.js', 'afro.js', 'bloques.js', 'profile.js', 'favoritos.js', 'dj.js', 'gustos.js', 'conciertos.js', 'artista.js', 'mini.js'].forEach((f) => { const s = document.createElement('script'); s.async = false; s.src = SRV() + '/app/' + f; document.body.append(s); });
 })();

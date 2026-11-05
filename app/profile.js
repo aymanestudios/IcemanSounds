@@ -285,6 +285,7 @@
     const body = $$('pfBody'); body.textContent = '';
     listaPref('Artistas que me gustan', 'gusta', 'evitar', 'Escribe aquí los artistas que quieres escuchar más. El DJ los meterá más a menudo.');
     listaPref('Artistas que prefiero evitar', 'evitar', 'gusta', 'Escribe aquí los que no quieres que suenen. Puedes quitarlos cuando quieras.');
+    (window.__pfExtras || []).forEach((f) => { try { f(body, el); } catch (e) { console.warn('preferencias:', e.message); } });   // otros módulos (estilos, variedad...)
 
     // --- Esta sesión ---
     const st = S.st;
@@ -332,6 +333,7 @@
     sal.onclick = () => { if (confirm('Se cerrará tu sesión y se borrará de este dispositivo todo lo que la radio guardó de tu Spotify (biblioteca, canciones ya sonadas, vetos). Tus artistas escritos se conservan. ¿Seguir?')) { if (window.IcemanPrivacidad) window.IcemanPrivacidad.salir(); else { LS.clear(); location.reload(); } } };
     body.append(olv, bor, sal);
   }
+  window.__pfRedibujar = () => { if (panel.classList.contains('open')) { const y = $$('pfBody').scrollTop; dibujar(); $$('pfBody').scrollTop = y; } };
   const abrir = (v) => { if (v) { dibujar(); const tt = $$('pfToast'); if (tt) tt.remove(); } panel.classList.toggle('open', v); btn.hidden = v || !LS.at; };
   btn.onclick = () => abrir(true);
   $$('pfX').onclick = () => abrir(false);
