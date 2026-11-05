@@ -126,7 +126,26 @@
   const EJECUTAR = {
     async play_artist(a) {
       const quiero = norm(a.artist);
-      let t = (await buscar('artist:"' + a.artist + '"', 2)).filter((x) => x.artists.some((ar) => norm(ar.name) === quiero || norm(ar.name).includes(quiero)));
+      const delArtista = (x) => x.artists.some((ar) => norm(ar.name) === quiero || norm(ar.name).includes(quiero));
+      // Si pides un tipo de canciones de ese artista ("las más de rap y agresivas"), Claude propone títulos que él conoce
+      // (solo ha visto lo que tú escribiste) y aquí se comprueba en Spotify cuáles existen de verdad. Solo suenan esas.
+      if (a.songs && a.songs.length) {
+        const MAL = /remix|version|live|en vivo|instrumental|karaoke|acoustic|acustic/;
+        const hallar = async (titulo) => {
+          const nt = norm(titulo);
+          const r = (await buscar('track:"' + titulo + '" artist:"' + a.artist + '"', 1)).filter(delArtista);
+          return r.find((x) => norm(x.name) === nt) || r.find((x) => norm(x.name).startsWith(nt + ' ') && (MAL.test(nt) || !MAL.test(norm(x.name)))) || null;
+        };
+        const halladas = [];
+        for (let i = 0; i < a.songs.length; i += 5) {
+          const r = await Promise.all(a.songs.slice(i, i + 5).map((t) => hallar(t).catch(() => null)));
+          halladas.push(...r.filter(Boolean));
+        }
+        const t = unicas(halladas);
+        if (t.length >= 3) { const n = await tocar(mezclar(t)); return `Poniendo ${a.artist}: ${n} de las ${a.songs.length} que encajan (solo suenan las que existen en Spotify)`; }
+        burbuja('n', `⚠️ No he localizado suficientes canciones de ese rollo de ${a.artist}; te pongo el artista en general.`);
+      }
+      let t = (await buscar('artist:"' + a.artist + '"', 2)).filter(delArtista);
       if (!t.length) t = (await buscar(a.artist, 2)).filter((x) => x.artists.some((ar) => norm(ar.name).includes(quiero)));
       const n = await tocar(mezclar(t).slice(0, 10)); return `Poniendo ${a.artist} (${n} canciones)`;
     },
@@ -134,6 +153,23 @@
       const t = await buscar(a.query, 1);
       if (!t.length) throw new Error('No encontré esa canción.');
       await tocar(t.slice(0, 1)); return `Poniendo ${t[0].name} de ${t[0].artists[0].name}`;
+    },
+    async play_album(a) {
+      // Álbum de un artista: se busca en Spotify, se leen sus canciones y suenan en orden. Luego sigue la radio con el DJ.
+      const nom = norm(a.album), quiero = norm(a.artist || '');
+      const buscarAlbum = async (q) => { const r = await get('api')('/search?type=album&limit=10&q=' + encodeURIComponent(q)); return ((r && r.albums && r.albums.items) || []).filter((x) => x && x.id); };
+      const delArtista = (x) => !quiero || (x.artists || []).some((ar) => norm(ar.name).includes(quiero) || quiero.includes(norm(ar.name)));
+      let c = (await buscarAlbum('album:"' + a.album + '"' + (a.artist ? ' artist:"' + a.artist + '"' : ''))).filter(delArtista);
+      if (!c.length) c = (await buscarAlbum(a.album + (a.artist ? ' ' + a.artist : ''))).filter(delArtista);
+      const exacto = c.filter((x) => norm(x.name) === nom), parecido = c.filter((x) => norm(x.name).includes(nom) || nom.includes(norm(x.name)));
+      const lista = (exacto.length ? exacto : parecido).sort((x, y) => (x.album_type === 'album' ? 0 : 1) - (y.album_type === 'album' ? 0 : 1) || x.name.length - y.name.length);
+      if (!lista.length) throw new Error('No encontré el álbum "' + a.album + '"' + (a.artist ? ' de ' + a.artist : '') + '. ¿Me dices el nombre exacto?');
+      const alb = lista[0];
+      const r = await get('api')('/albums/' + alb.id + '/tracks?limit=50');
+      const t = ((r && r.items) || []).filter(esTema);
+      if (!t.length) throw new Error('No pude leer las canciones de ese álbum.');
+      const n = await tocar(t.slice(0, a.count || 12));
+      return `Poniendo "${alb.name}" (${n} canciones, en orden)` + (!a.count && t.length > 12 ? '; luego sigue la radio' : '');
     },
     async play_vibe(a) {
       // Fase 0: sin enviar canciones a ninguna IA. Reglas locales: la actividad que dices -> estilos que suelen encajar.

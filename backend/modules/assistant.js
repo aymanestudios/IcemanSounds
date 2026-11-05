@@ -10,9 +10,12 @@ const GENEROS = ['reggaeton', 'rap', 'rnb', 'pop', 'electronica', 'afrobeat'];
 const FUENTES = ['viejas', 'playlists', 'artistas', 'top', 'recientes', 'descubrir'];
 
 const txt = (max) => (v) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null);
+const lista = (n, max) => (v) => (Array.isArray(v) ? v.map((x) => (typeof x === 'string' ? x.replace(/\s+/g, ' ').trim().slice(0, max) : '')).filter(Boolean).slice(0, n) : []);
+const opc = (f) => (v) => { if (v === undefined || v === null || v === '') return undefined; const r = f(v); return r === null ? undefined : r; };   // parámetro opcional: si falta o no vale, se ignora
 const ACCIONES = {
-  play_artist: { artist: txt(80) },
+  play_artist: { artist: txt(80), songs: lista(12, 80) },
   play_song:   { query: txt(100) },
+  play_album:  { album: txt(100), artist: opc(txt(80)), count: opc((v) => (Number.isFinite(Number(v)) ? Math.max(1, Math.min(12, Math.round(Number(v)))) : null)) },
   play_vibe:   { description: txt(120) },
   play_genre:  { genre: (v) => (GENEROS.includes(v) ? v : null) },
   play_source: { source: (v) => (FUENTES.includes(v) ? v : null) },
@@ -35,8 +38,9 @@ function validar(bruto) {
     for (const k in esquema) {
       const v = esquema[k](a[k]);
       if (v === null) { ok = false; break; }
-      limpia[k] = v;
+      if (v !== undefined) limpia[k] = v;
     }
+    if (ok && Array.isArray(limpia.songs) && !limpia.songs.length) delete limpia.songs;
     if (ok) out.actions.push(limpia);
   }
   return out;
@@ -45,8 +49,9 @@ function validar(bruto) {
 const SYS = `Eres el asistente de Iceman Sounds, una radio con DJ. Hablas en español, cercano y breve (1-2 frases), sin emojis.
 Respondes SOLO con un objeto JSON: {"reply":"texto corto para el usuario","actions":[...]}
 Acciones permitidas (máximo 3):
-- {"action":"play_artist","artist":"nombre"}  poner canciones de un artista
+- {"action":"play_artist","artist":"nombre","songs":["título",...]}  poner canciones de un artista. "songs" SOLO si el usuario pide un tipo concreto de canciones de ese artista (rap, agresivas, enérgicas, tranquilas, sensibles, de bailar...): hasta 10 títulos de ese artista que TÚ conozcas con seguridad y que encajen con lo pedido. Si no conoces bien al artista o dudas de un título, no lo pongas; si no conoces ninguno, omite "songs". Sin "songs", se ponen canciones del artista en general.
 - {"action":"play_song","query":"canción y artista"}  poner una canción concreta
+- {"action":"play_album","album":"nombre del álbum","artist":"artista","count":n}  poner un álbum de un artista, en orden. count (1-12) solo si pide un número de canciones ("un par" = 2); sin count se pone el álbum desde el principio. Solo si conoces el nombre exacto del álbum; si no, pregunta cuál es y actions=[] (no inventes nombres)
 - {"action":"play_vibe","description":"ambiente o actividad"}  poner música de la biblioteca del usuario que encaje (estudiar, gym, fiesta, conducir...); description = las palabras del usuario, cortas
 - {"action":"play_genre","genre":"reggaeton|rap|rnb|pop|electronica|afrobeat"}  música del usuario de ese estilo
 - {"action":"play_source","source":"viejas|playlists|artistas|top|recientes|descubrir"}  viejas=guardadas hace meses, recientes=guardadas hace poco, top=lo más escuchado, descubrir=artistas nuevos relacionados
@@ -125,7 +130,7 @@ module.exports = function (app) {
     const prompt = (hist ? 'Conversación reciente:\n' + hist + '\n\n' : '') + 'Mensaje nuevo del usuario: ' + m;
     let salida;
     try {
-      const t = await claude(SYS, prompt, 400);
+      const t = await claude(SYS, prompt, 700);
       salida = validar(JSON.parse(t.match(/\{[\s\S]*\}/)[0]));
     } catch (e) {
       if (/Claude \d|timeout|aborted/i.test(e.message)) throw e;
