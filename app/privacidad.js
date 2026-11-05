@@ -1,5 +1,6 @@
 // Privacidad de Iceman Sounds (Fase 0).
-// 1) Limpieza única de lo que guardaban las versiones anteriores (perfil de gustos, estilos clasificados por IA, copia en IndexedDB).
+// 1) Limpieza única de lo que guardaban las versiones anteriores (perfil de gustos, estilos clasificados por IA, copia en IndexedDB)
+//    y, cuando hay diccionario nuevo (cambia VERSION), recálculo de estilos.
 // 2) Caducidad: cada 30 días se borran las cachés con datos de Spotify (biblioteca, "ya sonadas", estilos, favoritos).
 // 3) Botón "Cerrar sesión y borrar mis datos de Spotify" (lo usa el panel de preferencias).
 // 4) Si Spotify dice que desconectaste la app (invalid_grant), se borran esos datos solos.
@@ -10,9 +11,9 @@
   window.__priv = true;
 
   const LS = localStorage;
-  const VERSION = '10';
+  const VERSION = '11';
   const DIA = 864e5;
-  const CACHES = ['lib', 'played', 'generosArtistas', 'afroMapa', 'favArtistas', 'colchon'];   // datos derivados de Spotify
+  const CACHES = ['lib', 'played', 'generosArtistas', 'afroMapa', 'favArtistas', 'genArt', 'colchon'];   // datos derivados de Spotify
   const SESION = ['ses_v1'];                                                                   // sessionStorage
   const TOKENS = ['at', 'rt', 'exp', 'v'];
   const hay = (n) => { try { return typeof (0, eval)(n) !== 'undefined'; } catch (e) { return false; } };
@@ -30,7 +31,7 @@
   try {
     if (LS.priv_v !== VERSION) {
       quitarPerfilAntiguo();
-      quitar(['generosArtistas', 'afroMapa', 'favArtistas', 'lib']);          // estaban clasificados por IA: se recalculan con el diccionario
+      quitar(['generosArtistas', 'afroMapa', 'favArtistas', 'genArt', 'lib']);   // se recalculan con el diccionario nuevo
       LS.priv_v = VERSION; LS.priv_t0 = String(Date.now());
       // si la página ya tenía la biblioteca antigua en memoria, se recarga una vez para que no la vuelva a guardar
       try { recargar = !!(LS.at && hay('lib') && get('lib')); } catch (e) {}

@@ -152,6 +152,7 @@
   css.textContent = `.gSeg{display:flex;gap:4px}.gSeg button{padding:4px 10px;font-size:12px}.gSeg button.p{color:#000}
   .gSel{max-width:46%;font-size:14px;color:var(--tx);background:#ffffff1f;border:1px solid #ffffff22;border-radius:999px;padding:6px 10px}.gSel option{color:#000}`;
   document.head.append(css);
+  let verSin = false;
   const redibujar = () => { try { if (window.__pfRedibujar) window.__pfRedibujar(); } catch (e) {} };
 
   function sinEstilo() {
@@ -198,17 +199,23 @@
     const { sin, con } = sinEstilo();
     if (sin.length || con.length) {
       body.append(el('div', 'pfH', 'Artistas sin estilo'));
-      const fila = (e) => {
-        const r = el('div', 'pfR'); const s = document.createElement('select'); s.className = 'gSel'; s.setAttribute('aria-label', 'Estilo de ' + e.n);
-        const o0 = document.createElement('option'); o0.value = ''; o0.textContent = 'Sin estilo'; s.append(o0);
-        EST.forEach(([k, nom]) => { const o = document.createElement('option'); o.value = k; o.textContent = nom; s.append(o); });
-        s.value = (G.tags[e.k] || {}).g || '';
-        s.onchange = () => etiquetar(e.k, e.n, s.value);
-        r.append(el('span', 'n', e.n), s); return r;
-      };
-      con.forEach((e) => body.append(fila(e)));
-      sin.forEach((e) => body.append(fila(e)));
-      body.append(el('p', 'pfNota', 'Estos artistas no los conozco. Si les pones estilo, los bloques de ese estilo los incluirán.'));
+      let nAuto = 0; try { nAuto = window.IcemanGeneros ? window.IcemanGeneros.estado().resueltos : 0; } catch (e) {}
+      body.append(el('p', 'pfNota', 'Los estilos se deducen solos (diccionario, géneros de Spotify y colaboraciones)' + (nAuto ? ': ' + nAuto + ' artistas clasificados en esta sesión' : '') + '. Solo hace falta revisar esto si algún artista te suena mal clasificado.'));
+      const ver = el('button', 'pfBig', verSin ? 'Ocultar artistas sin estilo' : 'Revisar artistas sin estilo (' + (sin.length + con.length) + ')'); ver.type = 'button';
+      ver.onclick = () => { verSin = !verSin; redibujar(); };
+      body.append(ver);
+      if (verSin) {
+        const fila = (e) => {
+          const r = el('div', 'pfR'); const s = document.createElement('select'); s.className = 'gSel'; s.setAttribute('aria-label', 'Estilo de ' + e.n);
+          const o0 = document.createElement('option'); o0.value = ''; o0.textContent = 'Sin estilo'; s.append(o0);
+          EST.forEach(([k, nom]) => { const o = document.createElement('option'); o.value = k; o.textContent = nom; s.append(o); });
+          s.value = (G.tags[e.k] || {}).g || '';
+          s.onchange = () => etiquetar(e.k, e.n, s.value);
+          r.append(el('span', 'n', e.n), s); return r;
+        };
+        con.forEach((e) => body.append(fila(e)));
+        sin.forEach((e) => body.append(fila(e)));
+      }
     }
   });
 
