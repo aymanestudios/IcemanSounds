@@ -424,7 +424,8 @@ function start() {
     player.addListener('account_error', e => $('st').textContent = 'Hace falta Premium: ' + e.message);
     player.addListener('initialization_error', e => $('st').textContent = 'Error: ' + e.message);
     player.addListener('player_state_changed', onState);
-    
+    player.addListener('not_ready', () => { $('st').textContent = 'Reconectando…'; player.connect(); });
+    player.connect();
   };
 
   const s = document.createElement('script'); s.src = 'https://sdk.scdn.co/spotify-player.js'; document.body.append(s);
@@ -484,4 +485,4 @@ barBox.addEventListener('pointerup', e => { if (drag) { drag = false; seekTo(e, 
   }
   if (LS.at) start(); else $('login').hidden = false;
 })();
-</script></body></html>
+</script><script>{const s=document.createElement('script');s.src=SERVER+'/app/assistant.js';document.body.append(s);}</script></body></html>
