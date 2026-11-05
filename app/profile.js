@@ -68,7 +68,7 @@
   }
 
   // ---------- Seguimiento de lo que suena ----------
-  let cur = null, ultimos = [], ultimoAviso = 0;
+  let cur = null, ultimos = [], ultimosG = [], ultimoAviso = 0;
   function cerrar(c) {
     if (!c || c.omitir || !c.dur) return;
     const ratio = c.max / c.dur;
@@ -77,9 +77,13 @@
     else if (ratio >= 0.8) { P.st.esc++; sumar(c.artista, 1, c.g); ultimos.push('c'); }
     else if (c.max < 20000 || ratio < 0.25) { P.st.salt++; sumar(c.artista, c.max < 8000 ? -1.5 : -1, c.g); ultimos.push('s'); }
     else ultimos.push('n');
-    ultimos = ultimos.slice(-6);
+    ultimosG.push(c.g || null);
+    ultimos = ultimos.slice(-6); ultimosG = ultimosG.slice(-6);
     guardar();
-    if (ultimos.filter((x) => x === 's').length >= 3 && Date.now() - ultimoAviso > 10 * 60 * 1000) { ultimoAviso = Date.now(); ultimos = []; aviso(); }
+    if (ultimos.filter((x) => x === 's').length >= 3 && Date.now() - ultimoAviso > 90 * 1000) {
+      const gs = ultimosG.filter((_, i) => ultimos[i] === 's');
+      ultimoAviso = Date.now(); ultimos = []; ultimosG = []; aviso(gs);
+    }
   }
   function enEstado(s) {
     if (!s || !s.track_window || !s.track_window.current_track) return;
@@ -141,13 +145,16 @@
     if (P.likes[cur.uri]) { delete P.likes[cur.uri]; P.st.like = Math.max(0, P.st.like - 1); sumar(cur.artista, -3, cur.g); }
     else {
       P.likes[cur.uri] = 1; P.st.like++; sumar(cur.artista, 3, cur.g);
+      try { if (window.IcemanDJ) window.IcemanDJ.nota('like'); } catch (e) {}
       const k = Object.keys(P.likes); if (k.length > 500) delete P.likes[k[0]];
     }
     guardar(); pintarCorazon();
   };
 
   // ---------- Aviso tras varios saltos seguidos ----------
-  function aviso() {
+  function aviso(gs) {
+    // si el DJ está activo, es él quien lo comenta (y cambia de estilo); si no, sale este aviso
+    try { if (window.IcemanDJ && window.IcemanDJ.reaccionSaltos(gs || [])) return; } catch (e) {}
     if ($$('pfToast')) return;
     const t = document.createElement('div'); t.id = 'pfToast';
     const p = document.createElement('span'); p.textContent = 'Parece que esto no te convence. ¿Cambio de rollo?';
@@ -169,6 +176,18 @@
     const pool = candidatas(uris); if (!pool || !pool.length) return uris;
     const cuenta = {}; uris.forEach((u) => { const t = m.get(u); if (t && t.g) cuenta[t.g] = (cuenta[t.g] || 0) + 1; });
     const g = Object.keys(cuenta).sort((a, b) => cuenta[b] - cuenta[a])[0];
+    // Tras varios saltos, el DJ pide cambiar de estilo: si este bloque es del estilo que saltaste, se sustituye entero por otro
+    const cambio = window.__cambioDe; window.__cambioDe = null;
+    if (cambio && Date.now() - cambio.t < 3 * 60 * 1000 && cambio.g.length && (!g || cambio.g.includes(g))) {
+      const nuevoG = mezclar([...new Set(pool.map((t) => t.g).filter((x) => x && !cambio.g.includes(x)))])
+        .find((x) => pool.filter((t) => t.g === x && puntos((t.artists[0] || {}).name) > UMBRAL_EVITAR).length >= Math.min(uris.length, 3));
+      if (nuevoG) {
+        const elegidas = mezclar(pool.filter((t) => t.g === nuevoG && puntos((t.artists[0] || {}).name) > UMBRAL_EVITAR)).slice(0, uris.length).map((t) => t.uri);
+        if (hay('savePlayed')) { const v = get('played')(); elegidas.forEach((u) => v.add(u)); get('savePlayed')(v); }
+        if (hay('lastUri') && get('lastUri') === uris[uris.length - 1]) asignar('lastUri', JSON.stringify(elegidas[elegidas.length - 1]));
+        return elegidas;
+      }
+    }
     let delMismo = mezclar(pool.filter((t) => !g || t.g === g));
     const arte = (t) => (t.artists && t.artists[0] && t.artists[0].name) || '';
     const usadas = [];
@@ -265,6 +284,10 @@
       });
     }
     if (st.evit || st.afin) body.append(el('p', 'pfNota', `Hasta ahora: ${st.evit} canciones evitadas y ${st.afin} añadidas por afinidad.`));
+    const fila = el('label', 'pfR'); const ck = document.createElement('input'); ck.type = 'checkbox'; ck.checked = LS.djcom !== 'off';
+    ck.onchange = () => { LS.djcom = ck.checked ? 'on' : 'off'; };
+    fila.append(ck, el('span', '', 'El DJ comenta tu sesión (saltos, ♥ y rachas) entre canción y canción')); fila.style.marginTop = '16px';
+    body.append(fila);
     body.append(el('p', 'pfNota', 'Tu perfil se guarda solo en este dispositivo y solo con lo que haces aquí (saltos, vetos y ♥). No se envía a ningún servidor y no analiza tu cuenta de Spotify. En el móvil y en el PC es independiente.'));
     const del = el('button', '', 'Borrar mi perfil'); del.id = 'pfDel'; del.type = 'button';
     del.onclick = () => { if (confirm('¿Borrar todo tu perfil de gustos en este dispositivo?')) { P = vacio(); guardar(); pintarCorazon(); dibujar(); } };

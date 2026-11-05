@@ -153,3 +153,4 @@ module.exports = function (app) {
 };
 
 module.exports.validar = validar;
+module.exports.usuarioDe = usuarioDe;   // lo reutiliza dj.js

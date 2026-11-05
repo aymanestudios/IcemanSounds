@@ -87,8 +87,9 @@
   async function buscarDispositivo() {
     const r = await api('/me/player/devices');
     const ds = (r && r.devices) || [];
-    const movil = ds.find((d) => d.is_active) || ds.find((d) => /smartphone|tablet/i.test(d.type || '')) || ds.find((d) => /iphone|android|ipad|móvil|movil/i.test(d.name || ''));
-    return movil || null;
+    // Solo el móvil/tablet: nunca el reproductor de un ordenador, aunque esté activo
+    const mov = ds.filter((d) => /smartphone|tablet/i.test(d.type || '') || /iphone|android|ipad|móvil|movil/i.test(d.name || ''));
+    return mov.find((d) => d.is_active) || mov[0] || null;
   }
   const conDisp = (p) => p + (p.includes('?') ? '&' : '?') + 'device_id=' + encodeURIComponent(hay('device') && get('device') || '');
 
@@ -141,6 +142,26 @@
     }
   }
   conectar();
+
+  // Si Spotify dice "Device not found" (la app del móvil se durmió), buscamos el móvil otra vez y reintentamos
+  const MSG_ABRIR = 'No encuentro tu Spotify. Abre la app de Spotify en el móvil, pon una canción un segundo y vuelve a pulsar.';
+  if (hay('reproducir')) {
+    const original = get('reproducir');
+    window.__movilRep = async function (uris, ...resto) {
+      try { return await original.call(this, uris, ...resto); }
+      catch (e) {
+        if (!/404|not found/i.test(String(e.message))) throw e;
+        const d = await buscarDispositivo().catch(() => null);
+        if (!d) throw new Error(MSG_ABRIR);
+        asignar('device', JSON.stringify(d.id));
+        try { await api('/me/player', { method: 'PUT', body: JSON.stringify({ device_ids: [d.id], play: false }) }); } catch (e2) {}
+        await dormir(800);
+        try { return await original.call(this, uris, ...resto); }
+        catch (e3) { throw new Error(MSG_ABRIR); }
+      }
+    };
+    asignar('reproducir', 'window.__movilRep');
+  }
   setInterval(() => { if (!document.hidden) sondear(); }, 1500);
 
   // ---------- Al bloquear o salir: cola de seguridad para que no se pare la música ----------
