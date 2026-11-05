@@ -40,8 +40,8 @@ html body .bar i::after{content:"";position:absolute;right:-6px;top:-3px;width:1
 
 /* controles */
 html body .row{justify-content:space-between;gap:10px;padding:2px 6px}
-html body .row button{width:56px;height:56px;background:#ffffff14;box-shadow:inset 0 0 0 1px #ffffff1c;font-size:18px}
-html body .row button.p{width:76px;height:76px;font-size:26px;background:linear-gradient(160deg,#27c4d4,#0e8f9d);color:#04161a;box-shadow:0 12px 30px -6px #12a9b8aa,inset 0 1px 0 #ffffff55}
+html body .row button{width:52px;height:52px;background:#ffffff14;box-shadow:inset 0 0 0 1px #ffffff1c;font-size:18px}
+html body .row button.p{width:72px;height:72px;font-size:26px;background:linear-gradient(160deg,#27c4d4,#0e8f9d);color:#04161a;box-shadow:0 12px 30px -6px #12a9b8aa,inset 0 1px 0 #ffffff55}
 html body .row button:active{transform:scale(.92)}
 
 /* voz y botón de empezar */
@@ -85,7 +85,25 @@ html body .vol span{font-size:0;display:grid;place-items:center;place-content:ce
 html body .vol span::before{content:"";width:20px;height:20px;background:currentColor;-webkit-mask:var(--i-vlow) center/contain no-repeat;mask:var(--i-vlow) center/contain no-repeat}
 html body .vol span:last-child::before{-webkit-mask-image:var(--i-vhigh);mask-image:var(--i-vhigh)}
 /* orden de la fila: micrófono a la izquierda del todo, ⏮ ⏯ ⏭ en el centro, 🚫 a la derecha del todo */
-html body .row{justify-content:center;gap:12px}
+html body .row{justify-content:center;gap:8px;min-width:0}
+html body #app,html body main{min-width:0}
 html body #art{order:0;margin-right:auto}
 html body #prev{order:1}html body #pp{order:2}html body #next{order:3}
 html body #ban{order:4;margin-left:auto}
+
+/* ===== Safari en el móvil (navegador, no PWA): scroll limpio ===== */
+html{background:#070d12;-webkit-text-size-adjust:100%}
+html body{background:transparent}   /* el fondo con la portada (#bg) va por detrás del cuerpo: si el cuerpo pinta color, lo tapa */
+/* la altura "estable" (svh) no cambia cuando Safari esconde o muestra su barra al hacer scroll: así nada salta ni se redimensiona */
+html body{min-height:100vh;min-height:100svh}
+html body #cv,html body #cover{width:min(100%,34vh);width:min(100%,34svh)}
+html body #cv{width:100%}
+@media (hover:none) and (pointer:coarse){
+  /* deja sitio abajo para que los botones flotantes no tapen el volumen al llegar al final */
+  html body{padding-bottom:calc(150px + env(safe-area-inset-bottom))}
+  /* efectos que hacen "tirones" al hacer scroll en el móvil: se simplifican */
+  html body .blobs i{animation:none;mix-blend-mode:normal;opacity:.1}
+  html body #bg{filter:blur(36px) brightness(.38) saturate(1.2);transform:translateZ(0) scale(1.25)}
+  html body #app{overflow:visible}
+  html body{overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch}
+}
