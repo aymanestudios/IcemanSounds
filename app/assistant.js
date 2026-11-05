@@ -195,5 +195,5 @@
 
   // Módulos adicionales (modo móvil y perfil de gustos). Si no cargan, el asistente sigue funcionando.
   // (movil.js va primero: en móvil sustituye el reproductor, y el perfil debe engancharse al definitivo)
-  ['movil.js', 'profile.js', 'dj.js'].forEach((f) => { const s = document.createElement('script'); s.async = false; s.src = SRV() + '/app/' + f; document.body.append(s); });
+  ['tema.js', 'movil.js', 'profile.js', 'dj.js', 'conciertos.js'].forEach((f) => { const s = document.createElement('script'); s.async = false; s.src = SRV() + '/app/' + f; document.body.append(s); });
 })();
