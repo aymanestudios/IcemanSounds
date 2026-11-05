@@ -15,6 +15,7 @@ const ACCIONES = {
   play_vibe:   { description: txt(120) },
   play_genre:  { genre: (v) => (GENEROS.includes(v) ? v : null) },
   play_source: { source: (v) => (FUENTES.includes(v) ? v : null) },
+  play_favorites: {},
   skip: {}, previous: {}, pause: {}, resume: {}, ban_current: {},
   volume:      { level: (v) => (Number.isFinite(Number(v)) ? Math.max(0, Math.min(100, Math.round(Number(v)))) : null) }
 };
@@ -48,6 +49,7 @@ Acciones permitidas (máximo 3):
 - {"action":"play_vibe","description":"ambiente o actividad"}  poner música de la biblioteca del usuario que encaje (estudiar, gym, fiesta, conducir...)
 - {"action":"play_genre","genre":"reggaeton|rap|rnb|pop|electronica"}  música del usuario de ese estilo
 - {"action":"play_source","source":"viejas|playlists|artistas|top|recientes|descubrir"}  viejas=guardadas hace meses, recientes=guardadas hace poco, top=lo más escuchado, descubrir=artistas nuevos relacionados
+- {"action":"play_favorites"}  lo que más le gusta al usuario según lo que ha escuchado, saltado y marcado con me gusta ("lo que más me gusta", "mis favoritas")
 - {"action":"skip"} {"action":"previous"} {"action":"pause"} {"action":"resume"} {"action":"ban_current"} (no volver a poner la canción actual)
 - {"action":"volume","level":0-100}
 Reglas: usa acciones SOLO si el usuario pide poner música o controlar la reproducción; si solo charla o pregunta algo, actions=[].

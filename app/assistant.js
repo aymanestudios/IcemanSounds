@@ -45,7 +45,7 @@
   document.body.append(btn, panel);
 
   const msgs = $$('asMsgs'), input = $$('asIn'), send = $$('asSend');
-  const SUGERENCIAS = ['Ponme algo para estudiar', 'Reggaetón', 'Algo tranquilo para la noche', 'Lo último que guardé', 'Más fuerte', 'Salta esta'];
+  const SUGERENCIAS = ['Ponme algo para estudiar', 'Reggaetón', 'Algo tranquilo para la noche', 'Lo que más me gusta', 'Lo último que guardé', 'Más fuerte', 'Salta esta'];
   SUGERENCIAS.forEach((s) => {
     const b = document.createElement('button'); b.type = 'button'; b.textContent = s;
     b.onclick = () => enviar(s); $$('asChips').append(b);
@@ -99,7 +99,8 @@
     if (!uris.length) throw new Error('No encontré canciones para eso.');
     if (hay('busy') && get('busy')) throw new Error('El DJ está hablando, prueba en unos segundos.');
     try { if (hay('player') && get('player') && get('player').activateElement) await get('player').activateElement(); } catch (e) {}
-    await get('reproducir')(uris);
+    window.__directo = true;                    // lo has pedido tú: el perfil no lo modifica
+    try { await get('reproducir')(uris); } finally { window.__directo = false; }
     if (hay('played') && hay('savePlayed')) { const v = get('played')(); uris.forEach((u) => v.add(u)); get('savePlayed')(v); }
     // al acabar la lista, la radio (el DJ) continúa sola
     set('lastUri', uris[uris.length - 1]);
@@ -140,6 +141,11 @@
       const t = mezclar(noVistas(L[a.source] || [])).slice(0, 8);
       if (!t.length) throw new Error('No tengo canciones nuevas en esa categoría.');
       await tocar(t); return 'Listo';
+    },
+    async play_favorites() {
+      const t = window.IcemanPerfil ? window.IcemanPerfil.favoritas(8) : [];
+      if (!t.length) throw new Error('Aún no sé cuáles son tus favoritas. Escucha, salta y dale al ♥ un poco más.');
+      await tocar(t); return 'Tus favoritas del momento';
     },
     async skip() { $$('next').click(); return 'Siguiente'; },
     async previous() { $$('prev').click(); return 'Anterior'; },
@@ -186,4 +192,7 @@
     } finally { ocupado = false; send.disabled = false; msgs.scrollTop = msgs.scrollHeight; }
   }
   $$('asForm').onsubmit = (e) => { e.preventDefault(); enviar(input.value); };
+
+  // Módulos adicionales (perfil de gustos). Si no cargan, el asistente sigue funcionando.
+  ['profile.js'].forEach((f) => { const s = document.createElement('script'); s.src = SRV() + '/app/' + f; document.body.append(s); });
 })();
