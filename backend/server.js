@@ -145,5 +145,6 @@ app.get('/logo.png', (req, res) => res.sendFile(path.join(__dirname, '..', 'logo
     res.json(JSON.parse(txt.match(/\{[\s\S]*\}/)[0]));
   } catch (e) { console.error(e); res.status(500).send(e.message); }
 });
+   try { require('./modules')(app); } catch (e) { console.warn('Módulos nuevos no cargados:', e.message); }
 
 app.listen(process.env.PORT || 3000, () => console.log('Servidor listo'));

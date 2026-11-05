@@ -1,0 +1,15 @@
+FASE 1 - ASISTENTE (Iceman Sounds)
+
+1) Descomprime este zip DENTRO de MisProjectos (que se mezcle con lo que hay).
+   Debe quedar:  MisProjectos/app/assistant.js
+                 MisProjectos/backend/modules/index.js
+                 MisProjectos/backend/modules/assistant.js
+
+2) backend/server.js: añade ESTA línea justo encima de la última (la de app.listen):
+   try { require('./modules')(app); } catch (e) { console.warn('Módulos nuevos no cargados:', e.message); }
+
+3) djKELOKE.HTML: añade esto justo antes de </body> (después del último </script>):
+   <script>{const s=document.createElement('script');s.src=SERVER+'/app/assistant.js';document.body.append(s);}</script>
+
+4) Para el servidor (Ctrl+C) y arráncalo otra vez: cd backend  ->  node server.js
+   Debe salir "Módulos nuevos cargados: asistente".
