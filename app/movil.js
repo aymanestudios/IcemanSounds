@@ -1,18 +1,18 @@
-// Modo móvil de Iceman Sounds.
-// En iPhone/Android el reproductor web de Spotify no funciona, así que aquí la web hace de MANDO:
-// controla la app de Spotify de tu móvil (Spotify Connect) y la radio sigue funcionando igual.
-// Solo se activa en móvil (o con ?movil=1 en la dirección, para probar desde el PC). En PC no hace nada.
+// Ayudas para el móvil (iPhone/Android) de Iceman Sounds.
+// Por defecto la radio suena DENTRO de la propia página (reproductor web de Spotify), como siempre.
+// Este módulo añade una red de seguridad para cuando bloqueas el móvil o cambias de app:
+//  - Al bloquear/salir: añade unas canciones a la cola de Spotify, así la música NO se para aunque el iPhone congele la página.
+//  - Al volver: si la música se había acabado mientras tanto, la radio retoma sola, con el DJ.
+// Límite de iOS (no se puede saltar desde una web): con la pantalla bloqueada el DJ no puede hablar.
 //
-// Límites reales de iOS (no se pueden saltar desde una web):
-//  - Con la pantalla bloqueada el iPhone congela la página: el DJ no puede hablar y la radio no puede elegir el siguiente bloque.
-//  - Por eso, justo al bloquear/salir, se añaden unas canciones a la cola de Spotify para que la música NO se pare,
-//    y al volver a abrir la web la radio retoma sola, con el DJ.
+// Opcional (apagado por defecto): "modo mando" = controlar la app de Spotify del móvil en vez de reproducir en la página.
+// Se activa solo con ?movil=1 en la dirección (o localStorage.mando = '1'). Necesita la app de Spotify abierta en el móvil.
 (function () {
   'use strict';
   if (window.__movil) return;
-  const esMovil = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ||
-    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) || /[?&]movil=1/.test(location.search);
-  if (!esMovil) return;
+  const esMovil = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const modoMando = /[?&]movil=1/.test(location.search) || localStorage.mando === '1';
+  if (!esMovil && !modoMando) return;
   window.__movil = true;
 
   const hay = (n) => { try { return typeof (0, eval)(n) !== 'undefined'; } catch (e) { return false; } };
@@ -24,9 +24,11 @@
   const estado = (t) => { const s = $$('st'); if (s) s.textContent = t; };
 
   // En móvil el volumen lo controlan los botones del teléfono; el deslizador no tendría efecto
-  const css = document.createElement('style');
-  css.textContent = '.vol{display:none!important}';
-  document.head.append(css);
+  if (modoMando) {
+    const css = document.createElement('style');
+    css.textContent = '.vol{display:none!important}';
+    document.head.append(css);
+  }
 
   // ---------- Estado de lo que suena (se consulta cada 1,5 s y se extrapola entre consultas) ----------
   let snap = null, ocupado = false, ultimoOk = Date.now(), emitido = '';
@@ -119,8 +121,10 @@
       asignar('player', 'window.__mando');
     }
   }
-  instalar();
-  let n = 0; const vigila = setInterval(() => { instalar(); if (++n > 20) clearInterval(vigila); }, 500);
+  if (modoMando) {
+    instalar();
+    let n = 0; const vigila = setInterval(() => { instalar(); if (++n > 20) clearInterval(vigila); }, 500);
+  }
 
   async function conectar() {
     const go = $$('go');
@@ -141,11 +145,11 @@
       await dormir(4000);
     }
   }
-  conectar();
+  if (modoMando) conectar();
 
   // Si Spotify dice "Device not found" (la app del móvil se durmió), buscamos el móvil otra vez y reintentamos
   const MSG_ABRIR = 'No encuentro tu Spotify. Abre la app de Spotify en el móvil, pon una canción un segundo y vuelve a pulsar.';
-  if (hay('reproducir')) {
+  if (modoMando && hay('reproducir')) {
     const original = get('reproducir');
     window.__movilRep = async function (uris, ...resto) {
       try { return await original.call(this, uris, ...resto); }
@@ -162,15 +166,18 @@
     };
     asignar('reproducir', 'window.__movilRep');
   }
-  setInterval(() => { if (!document.hidden) sondear(); }, 1500);
+  if (modoMando) setInterval(() => { if (!document.hidden) sondear(); }, 1500);
 
   // ---------- Al bloquear o salir: cola de seguridad para que no se pare la música ----------
   let colaEn = false, ultimaCola = 0;
   async function colchon() {
     if (colaEn || Date.now() - ultimaCola < 10 * 60 * 1000) return;
-    if (!(hay('started') && get('started')) || !snap || !snap.playing || !(hay('lib') && get('lib')) || !(hay('device') && get('device'))) return;
-    colaEn = true; ultimaCola = Date.now();
+    if (!(hay('started') && get('started')) || !(hay('lib') && get('lib')) || !(hay('device') && get('device'))) return;
+    colaEn = true;
     try {
+      const sNow = await estadoActual();
+      if (!sNow || sNow.paused) return;            // si no está sonando, no hace falta
+      ultimaCola = Date.now();
       const L = get('lib'), vistas = get('played')();
       const todo = get('shuffle')(get('uniq')(Object.values(L).flat()).filter((t) => !vistas.has(t.uri)));
       const gs = Object.keys(get('GRUPOS')).filter((g) => todo.filter((t) => t.g === g).length >= 4);
@@ -187,7 +194,32 @@
       if (puestas.length) { const v = get('played')(); puestas.forEach((u) => v.add(u)); get('savePlayed')(v); }
     } catch (e) { console.warn('cola:', e.message); } finally { colaEn = false; }
   }
-  document.addEventListener('visibilitychange', () => { if (document.hidden) colchon(); else { sondear(); } });
-  window.addEventListener('pagehide', colchon);
-  window.addEventListener('pageshow', () => sondear());
+  async function estadoActual() {
+    try {
+      if (modoMando) return actual();
+      const p = hay('player') && get('player');
+      return p && p.getCurrentState ? await p.getCurrentState() : null;
+    } catch (e) { return null; }
+  }
+
+  // Al volver a la web: si la música se acabó mientras estabas fuera, la radio sigue sola (con el DJ)
+  let ocultoDesde = 0;
+  async function revisarAlVolver() {
+    const hueco = Date.now() - ocultoDesde;
+    await dormir(1200);                             // damos tiempo al reproductor a despertar
+    if (!(hay('started') && get('started')) || (hay('busy') && get('busy')) || !hay('nextBatch')) return;
+    const s = await estadoActual();
+    const t = s && s.track_window && s.track_window.current_track;
+    const terminado = !s || !t
+      ? hueco > 20000
+      : s.paused && s.position < 2000 && (hueco > 15000 || (s.track_window.previous_tracks || []).some((x) => x.id === t.id));
+    if (terminado) get('nextBatch')(false);
+  }
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { ocultoDesde = Date.now(); colchon(); }
+    else if (modoMando) sondear(); else revisarAlVolver();
+  });
+  window.addEventListener('pagehide', () => { ocultoDesde = Date.now(); colchon(); });
+  window.addEventListener('pageshow', (e) => { if (modoMando) sondear(); else if (e.persisted) revisarAlVolver(); });
 })();
