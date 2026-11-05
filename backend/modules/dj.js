@@ -36,6 +36,7 @@ const FRASES_EXTRA = {
   racha_rap:       ['Hoy vas de rap, eh. Me gusta esa racha, sigo por ahí.', 'Llevas un buen rato con hip hop, así que seguimos con las rimas.'],
   racha_rnb:       ['Hoy tienes un día de R&B y soul, y me gusta. Sigo por ahí.', 'Llevas un buen rato con R&B, así que seguimos con el sentimiento.'],
   racha_pop:       ['Hoy vas de pop, y la racha me gusta. Sigo por ahí.', 'Llevas un buen rato con pop, así que seguimos cantando.'],
+  racha_afrobeat:  ['Hoy vas de afrobeat, y esa racha me encanta. Sigo por ahí.', 'Llevas un buen rato con afrobeat, así que seguimos con el ritmo.'],
   racha_electronica: ['Hoy vas de electrónica, eh. Me gusta la racha, sigo por ahí.', 'Llevas un buen rato con electrónica, así que seguimos bailando.']
 };
 

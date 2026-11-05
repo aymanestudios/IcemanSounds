@@ -5,7 +5,7 @@
 // Claude NUNCA recibe tokens ni ejecuta nada: solo propone acciones; las ejecuta el navegador.
 
 const MODELO = 'claude-haiku-5-5';
-const GENEROS = ['reggaeton', 'rap', 'rnb', 'pop', 'electronica'];
+const GENEROS = ['reggaeton', 'rap', 'rnb', 'pop', 'electronica', 'afrobeat'];
 const FUENTES = ['viejas', 'playlists', 'artistas', 'top', 'recientes', 'descubrir'];
 
 const txt = (max) => (v) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null);
@@ -47,7 +47,7 @@ Acciones permitidas (máximo 3):
 - {"action":"play_artist","artist":"nombre"}  poner canciones de un artista
 - {"action":"play_song","query":"canción y artista"}  poner una canción concreta
 - {"action":"play_vibe","description":"ambiente o actividad"}  poner música de la biblioteca del usuario que encaje (estudiar, gym, fiesta, conducir...)
-- {"action":"play_genre","genre":"reggaeton|rap|rnb|pop|electronica"}  música del usuario de ese estilo
+- {"action":"play_genre","genre":"reggaeton|rap|rnb|pop|electronica|afrobeat"}  música del usuario de ese estilo
 - {"action":"play_source","source":"viejas|playlists|artistas|top|recientes|descubrir"}  viejas=guardadas hace meses, recientes=guardadas hace poco, top=lo más escuchado, descubrir=artistas nuevos relacionados
 - {"action":"play_favorites"}  lo que más le gusta al usuario según lo que ha escuchado, saltado y marcado con me gusta ("lo que más me gusta", "mis favoritas")
 - {"action":"skip"} {"action":"previous"} {"action":"pause"} {"action":"resume"} {"action":"ban_current"} (no volver a poner la canción actual)
@@ -154,3 +154,6 @@ module.exports = function (app) {
 
 module.exports.validar = validar;
 module.exports.usuarioDe = usuarioDe;   // lo reutiliza dj.js
+module.exports.claude = claude;         // los reutiliza musica.js
+module.exports.guardia = guardia;
+module.exports.corto = corto;

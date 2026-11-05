@@ -8,7 +8,7 @@ module.exports = function montar(app) {
   app.use('/app', express.static(path.join(__dirname, '..', '..', 'app')));
 
   const cargados = [];
-  for (const m of ['assistant', 'dj', 'conciertos']) {
+  for (const m of ['assistant', 'dj', 'conciertos', 'musica']) {
     try { require('./' + m)(app); cargados.push(m); }
     catch (e) { console.warn('Módulo "' + m + '" no cargado:', e.message); }
   }
