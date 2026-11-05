@@ -1,6 +1,7 @@
 // Asistente de Iceman Sounds (por texto). Se carga desde djKELOKE.HTML con una línea.
 // Reutiliza las funciones que ya existen en la página: api, token, reproducir, setVol, played, savePlayed, loadLib...
 // No crea un segundo reproductor. Si algo falla aquí, la radio sigue igual.
+// Cumplimiento (Fase 0): a Claude solo se envía lo que escribes en el chat. Nunca canciones, artistas ni listas de Spotify.
 (function () {
   'use strict';
   if (window.__asistente) return;
@@ -72,6 +73,19 @@
   const esTema = (t) => t && t.uri && t.uri.startsWith('spotify:track:');
   const authH = async () => ({ 'Content-Type': 'application/json', Authorization: 'Bearer ' + (await get('token')()) });
 
+  // Actividad / ambiente -> estilos que suelen encajar (reglas escritas a mano, sin IA)
+  const VIBES = [
+    [/estudi|concentr|trabaj|leer|leyendo|foco|deberes/, ['rnb', 'electronica', 'pop']],
+    [/gym|gimnas|entren|correr|running|ejercicio|pesas/, ['rap', 'reggaeton', 'electronica']],
+    [/fiest|bail|perre|party|discoteca|marcha|pre ?copas|cumple/, ['reggaeton', 'afrobeat', 'electronica']],
+    [/conduc|carretera|coche|viaje|trayecto/, ['rap', 'pop', 'rnb']],
+    [/noche|tranquil|relaj|chill|dormir|calma|suave|lento/, ['rnb', 'pop']],
+    [/triste|melanc|llorar|desamor|nostalg/, ['rnb', 'pop', 'rap']],
+    [/energ|anima|motiv|despert|mañana|manana/, ['reggaeton', 'rap', 'afrobeat']],
+    [/romantic|amor|cita|pareja/, ['rnb', 'pop', 'reggaeton']]
+  ];
+  const estilosDe = (texto) => { const t = norm(texto); const v = VIBES.find(([re]) => re.test(t)); return v ? v[1] : null; };
+
   async function buscar(q, paginas) {
     const out = [];
     for (let i = 0; i < paginas; i++) {
@@ -99,7 +113,7 @@
     if (!uris.length) throw new Error('No encontré canciones para eso.');
     if (hay('busy') && get('busy')) throw new Error('El DJ está hablando, prueba en unos segundos.');
     try { if (hay('player') && get('player') && get('player').activateElement) await get('player').activateElement(); } catch (e) {}
-    window.__directo = true;                    // lo has pedido tú: el perfil no lo modifica
+    window.__directo = true;                    // lo has pedido tú: las preferencias no lo modifican
     try { await get('reproducir')(uris); } finally { window.__directo = false; }
     if (hay('played') && hay('savePlayed')) { const v = get('played')(); uris.forEach((u) => v.add(u)); get('savePlayed')(v); }
     // al acabar la lista, la radio (el DJ) continúa sola
@@ -122,13 +136,25 @@
       await tocar(t.slice(0, 1)); return `Poniendo ${t[0].name} de ${t[0].artists[0].name}`;
     },
     async play_vibe(a) {
+      // Fase 0: sin enviar canciones a ninguna IA. Reglas locales: la actividad que dices -> estilos que suelen encajar.
       const L = await biblioteca();
-      const pool = mezclar(noVistas(unicas(Object.values(L).flat()))).slice(0, 150);
+      const todas = unicas(Object.values(L).flat());
+      const P = window.IcemanPerfil;
+      const arte = (t) => (t.artists && t.artists[0] && t.artists[0].name) || '';
+      let pool = noVistas(todas).filter((t) => !P || P.puntos(arte(t)) > -4);
       if (pool.length < 5) throw new Error('Aún no tengo suficiente música tuya cargada.');
-      const r = await fetch(SRV() + '/assistant/pick', { method: 'POST', headers: await authH(), body: JSON.stringify({ descripcion: a.description, n: 8, canciones: pool.map((t) => t.name + ' - ' + t.artists[0].name) }) });
-      if (!r.ok) throw new Error('No pude elegir canciones ahora.');
-      const { indices } = await r.json();
-      await tocar(indices.map((i) => pool[i]).filter(Boolean)); return `Música para: ${a.description}`;
+      const quiere = estilosDe(a.description);
+      const buenas = quiere ? pool.filter((t) => quiere.includes(t.g)) : [];
+      if (buenas.length >= 5) pool = buenas;
+      // variedad: como mucho 2 canciones por artista
+      const porArtista = {}, elegidas = [];
+      for (const t of mezclar(pool)) {
+        const k = norm(arte(t)); porArtista[k] = (porArtista[k] || 0) + 1;
+        if (porArtista[k] <= 2) elegidas.push(t);
+        if (elegidas.length >= 8) break;
+      }
+      await tocar(elegidas);
+      return `Música para: ${a.description}` + (quiere && buenas.length >= 5 ? '' : ' (mezcla: no tengo suficientes de ese rollo)');
     },
     async play_genre(a) {
       const L = await biblioteca();
@@ -144,7 +170,7 @@
     },
     async play_favorites() {
       const t = window.IcemanPerfil ? window.IcemanPerfil.favoritas(8) : [];
-      if (!t.length) throw new Error('Aún no sé cuáles son tus favoritas. Escucha, salta y dale al ♥ un poco más.');
+      if (!t.length) throw new Error('Aún no sé cuáles son tus favoritas. Añade artistas en ⚙️ Mis preferencias o dale al ♥ mientras escuchas.');
       await tocar(t); return 'Tus favoritas del momento';
     },
     async skip() { $$('next').click(); return 'Siguiente'; },
@@ -160,16 +186,6 @@
 
   window.IcemanAsistente = { tocar, buscar, norm, mezclar };   // lo reutilizan los módulos (bloque de artista)
 
-  async function sonando() {
-    try {
-      if (hay('player') && get('player') && get('player').getCurrentState) {
-        const s = await get('player').getCurrentState();
-        if (s) { const t = s.track_window.current_track; return { titulo: t.name, artista: t.artists.map((a) => a.name).join(', ') }; }
-      }
-    } catch (e) {}
-    return null;
-  }
-
   // ---------- Envío ----------
   let ocupado = false;
   async function enviar(texto) {
@@ -179,7 +195,7 @@
     burbuja('u', texto);
     const espera = burbuja('a', '…');
     try {
-      const r = await fetch(SRV() + '/assistant', { method: 'POST', headers: await authH(), body: JSON.stringify({ mensaje: texto, historial, ahora: await sonando() }) });
+      const r = await fetch(SRV() + '/assistant', { method: 'POST', headers: await authH(), body: JSON.stringify({ mensaje: texto, historial }) });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(d.error || 'Error ' + r.status);
       espera.textContent = d.reply || 'Hecho.';
@@ -195,7 +211,7 @@
   }
   $$('asForm').onsubmit = (e) => { e.preventDefault(); enviar(input.value); };
 
-  // Módulos adicionales (modo móvil y perfil de gustos). Si no cargan, el asistente sigue funcionando.
+  // Módulos adicionales (privacidad, modo móvil y preferencias). Si no cargan, el asistente sigue funcionando.
   // (movil.js va primero: en móvil sustituye el reproductor, y el perfil debe engancharse al definitivo)
-  ['tema.js', 'movil.js', 'afro.js', 'bloques.js', 'profile.js', 'dj.js', 'conciertos.js', 'artista.js', 'mini.js'].forEach((f) => { const s = document.createElement('script'); s.async = false; s.src = SRV() + '/app/' + f; document.body.append(s); });
+  ['privacidad.js', 'tema.js', 'movil.js', 'afro.js', 'bloques.js', 'profile.js', 'favoritos.js', 'dj.js', 'conciertos.js', 'artista.js', 'mini.js'].forEach((f) => { const s = document.createElement('script'); s.async = false; s.src = SRV() + '/app/' + f; document.body.append(s); });
 })();

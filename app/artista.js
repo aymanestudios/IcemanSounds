@@ -1,4 +1,4 @@
-// Botón 🎤 "un bloque de este artista": Claude propone 3 artistas cercanos al que suena (colaboradores o misma escena),
+// Botón 🎤 "un bloque de este artista": el servidor propone hasta 3 artistas de la misma escena (diccionario escrito a mano, sin IA),
 // el navegador comprueba en Spotify que existen y arma un bloque: varias canciones del artista + un par de cada uno de los otros.
 // Solo se anuncia lo que de verdad se encuentra. El texto sale en pantalla (sin voz, para no gastar créditos de ElevenLabs).
 (function () {
@@ -34,7 +34,7 @@
 
       let propuestos = [];
       try {
-        const r = await fetch(SRV() + '/artista/plan', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (await get('token')()) }, body: JSON.stringify({ artista: principal, cancion: actual.name }) });
+        const r = await fetch(SRV() + '/artista/plan', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (await get('token')()) }, body: JSON.stringify({ artista: principal }) });
         if (r.ok) propuestos = (await r.json()).artistas || [];
       } catch (e) { console.warn('plan:', e.message); }
 

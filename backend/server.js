@@ -1,6 +1,6 @@
 // server.js: el "cerebro" secreto del DJ.
 //  /dj   -> devuelve el audio de lo que dice el DJ (y el texto en la cabecera X-Texto)
-//  /mood -> Claude elige qué canciones encajan con un mood (necesita clave de Anthropic)
+//  /mood -> DESACTIVADO (Fase 0: no se envían datos de Spotify a Claude)
 
 require('dotenv').config();
 const fs = require('fs');
@@ -11,7 +11,6 @@ const cors = require('cors');
 
 // ====== AJUSTES QUE PUEDES CAMBIAR ======
 const NOMBRE = 'Iceman Sounds';       // el nombre de tu DJ (si lo cambias, se generan intros nuevas)
-const PROB_PERSONALIZADA = 0.05;  // % de veces que habla Claude con datos reales (solo si hay clave de Anthropic)
 const FRASES = {                  // frases guardadas por tema: se generan UNA vez y se reutilizan
   // Intros: una de ellas suena siempre al empezar la sesión
   intro: [
@@ -39,8 +38,6 @@ const MOODS = {
   energia: 'subir la energía (animadas, con ritmo)',
   chill: 'relajarse (tranquilas, suaves)'
 };
-const SYS_DJ = 'Eres un DJ de radio con mucha personalidad y buen rollo. Hablas en español, ' +
-               'máximo 2 frases cortas, sin emojis. Menciona alguna de las canciones y no inventes datos sobre ellas.';
 // ========================================
 const AJUSTES = {
   model_id: 'eleven_multilingual_v2',   // el de mejor calidad en español
@@ -61,18 +58,7 @@ const app = express();
 app.use(cors({ origin: 'http://127.0.0.1:5500', exposedHeaders: ['X-Texto'] }));
 app.use(express.json());
 
-async function claude(system, user, max) {
-  const r = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-    body: JSON.stringify({ model: 'claude-haiku-5-5', max_tokens: max, thinking: { type: 'disabled' }, system, messages: [{ role: 'user', content: user }] })
-  });
-  if (!r.ok) throw new Error('Claude: ' + await r.text());
-  const data = await r.json();
-const bloque = data.content.find(b => b.type === 'text');
-if (!bloque) throw new Error('Claude no devolvió texto (' + data.stop_reason + ')');
-return bloque.text;
-}
+// (Fase 0: la función que llamaba a Claude desde aquí se ha quitado; el servidor ya no envía nada a Claude.)
 
 async function vozDe(texto) { // esto es lo que gasta créditos de ElevenLabs
   const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${process.env.VOICE_ID}`, {
@@ -96,16 +82,9 @@ async function vozConCache(texto) { // si ya se generó antes, reutiliza el arch
 
 app.post('/dj', async (req, res) => {
   try {
-    const { canciones, modo, tema } = req.body;
+    const { tema } = req.body;
     let audio, texto = '';
-    // Frase personalizada con Claude (solo si hay clave y nunca en la intro)
-    if (tema !== 'intro' && process.env.ANTHROPIC_API_KEY && Math.random() < PROB_PERSONALIZADA) {
-      try {
-        texto = await claude(SYS_DJ, `Vas a poner ${modo}. Las próximas canciones son: ${canciones.join(', ')}.`, 400);
-        console.log('DJ dice (personalizada):', texto);
-        audio = await vozDe(texto);
-      } catch (e) { console.warn('Personalizada falló, uso frase guardada:', e.message); audio = null; texto = ''; }
-    }
+    // Fase 0 (cumplimiento Spotify): ya NO se manda ninguna canción ni artista a Claude. Siempre suena una frase guardada.
     if (!audio) { // frase guardada del tema (o un mp3 tuyo)
       const lista = FRASES[tema] || FRASES.general;
       const propias = tema === 'intro' ? [] : fs.readdirSync(PROPIAS).filter(n => n.toLowerCase().endsWith('.mp3'));
@@ -119,14 +98,9 @@ app.post('/dj', async (req, res) => {
   } catch (e) { console.error(e); res.status(500).send(e.message); }
 });
 
-app.post('/mood', async (req, res) => {
-  try {
-    const { mood, n, canciones } = req.body;
-    const txt = await claude('Eliges canciones para un DJ. Responde SOLO con un array JSON de números, sin texto.',
-      `Elige las ${n} canciones que mejor encajan para ${MOODS[mood]}. Lista numerada desde 0:\n` +
-      canciones.map((c, i) => i + ': ' + c).join('\n'), 300);
-    res.json({ indices: JSON.parse(txt.match(/\[[\d,\s]*\]/)[0]) });
-  } catch (e) { console.error(e); res.status(500).send(e.message); }
+app.post('/mood', (req, res) => {
+  // Desactivado en la Fase 0: enviaba títulos de canciones de Spotify a Claude. La web actual no lo usa.
+  res.status(410).json({ error: 'Desactivado.' });
 });
 
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, '..', 'djKELOKE.HTML')));
@@ -134,16 +108,12 @@ app.get('/logo.png', (req, res) => res.sendFile(path.join(__dirname, '..', 'logo
 ['manifest.json', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'].forEach(f =>
   app.get('/' + f, (req, res) => res.sendFile(path.join(__dirname, '..', f))));
 
-  app.post('/generos', async (req, res) => {
+app.post('/generos', (req, res) => {
+  // Fase 0: sin IA. Los estilos salen de un diccionario escrito a mano (backend/modules/estilos.js); lo que no está, es "otros".
   try {
-    const { artistas } = req.body;
-    const txt = await claude(
-      'Clasificas artistas musicales por estilo. Responde SOLO con un objeto JSON {"nombre":"estilo"}, sin texto extra. ' +
-      'Estilos permitidos: reggaeton, rap, rnb, pop, electronica, otros. Usa exactamente los nombres que te doy.',
-      'Clasifica cada artista en su estilo principal (reggaeton incluye música urbana latina y trap latino; rap incluye hip hop y trap; rnb incluye soul):\n' + artistas.join('\n'),
-      3000);
-    res.json(JSON.parse(txt.match(/\{[\s\S]*\}/)[0]));
-  } catch (e) { console.error(e); res.status(500).send(e.message); }
+    const { clasificar } = require('./modules/estilos');
+    res.json(clasificar((req.body || {}).artistas));
+  } catch (e) { console.error(e); res.status(500).send('No pude clasificar ahora.'); }
 });
    try { require('./modules')(app); } catch (e) { console.warn('Módulos nuevos no cargados:', e.message); }
 

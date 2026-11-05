@@ -1,5 +1,5 @@
 // Estilo AFROBEAT (afrobeats, afropop, amapiano, afroswing...). Se añade como un estilo más de la radio, sin tocar tu HTML ni server.js.
-// Claude (en el servidor) dice qué artistas de tu biblioteca son afro; el resultado se guarda en tu navegador y solo se pregunta por artistas nuevos.
+// El servidor (diccionario escrito a mano, sin IA) dice qué artistas de tu biblioteca son afro; se guarda en tu navegador unos días y solo se pregunta por artistas nuevos.
 // Si algo falla, todo sigue como antes (esas canciones quedan en su estilo de siempre).
 (function () {
   'use strict';
