@@ -149,7 +149,11 @@
 
   // ---------- Panel: se añade dentro de "Mis preferencias" ----------
   const css = document.createElement('style');
-  css.textContent = `.gSeg{display:flex;gap:4px}.gSeg button{padding:4px 10px;font-size:12px}.gSeg button.p{color:#000}
+  css.textContent = `.eGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .eCard{background:#ffffff0f;border-radius:14px;padding:10px 9px 9px;box-shadow:inset 0 0 0 1px #ffffff12}
+  .eCard.mas{box-shadow:inset 0 0 0 1.5px var(--ac)}.eCard.menos{opacity:.72}
+  .eCard b{display:block;font-size:14px;margin:0 0 8px 3px}.eCard b::first-letter{text-transform:uppercase}
+  .eCard .pfSeg{width:100%}.eCard .pfSeg button{padding:6px 0;font-size:12px}
   .gSel{max-width:46%;font-size:14px;color:var(--tx);background:#ffffff1f;border:1px solid #ffffff22;border-radius:999px;padding:6px 10px}.gSel option{color:#000}`;
   document.head.append(css);
   let verSin = false;
@@ -174,33 +178,32 @@
     redibujar();
   }
 
-  (window.__pfExtras = window.__pfExtras || []).push(function (body, el) {
+  const panelEstilos = function (body, el) {
+    const UI = window.__pfUI;
     body.append(el('div', 'pfH', 'Mis estilos'));
+    const grid = el('div', 'eGrid');
     EST.forEach(([k, nom]) => {
-      const r = el('div', 'pfR'); const val = G.menos.includes(k) ? 'menos' : G.mas.includes(k) ? 'mas' : 'normal';
-      const seg = el('div', 'gSeg');
-      [['menos', 'Menos'], ['normal', 'Normal'], ['mas', 'Más']].forEach(([v, t]) => {
-        const b = el('button', v === val ? 'p' : '', t); b.type = 'button';
-        b.onclick = () => { G.menos = G.menos.filter((x) => x !== k); G.mas = G.mas.filter((x) => x !== k); if (v === 'menos') G.menos.push(k); if (v === 'mas') G.mas.push(k); guardar(); redibujar(); };
-        seg.append(b);
-      });
-      r.append(el('span', 'n', nom), seg); body.append(r);
+      const val = G.menos.includes(k) ? 'menos' : G.mas.includes(k) ? 'mas' : 'normal';
+      const c = el('div', 'eCard' + (val !== 'normal' ? ' ' + val : '')); c.append(el('b', '', nom));
+      c.append(UI.segmentos([['menos', 'Menos'], ['normal', 'Normal'], ['mas', 'Más']], val, (v) => {
+        G.menos = G.menos.filter((x) => x !== k); G.mas = G.mas.filter((x) => x !== k); if (v === 'menos') G.menos.push(k); if (v === 'mas') G.mas.push(k); guardar(); redibujar();
+      }));
+      grid.append(c);
     });
-    body.append(el('p', 'pfNota', '"Menos" hace que ese estilo suene bastante menos; "Más", un poco más a menudo. Lo que pides tú por el chat no se toca.'));
+    body.append(grid);
+    body.append(el('p', 'pfNota', '"Menos" suena bastante menos; "Más", algo más a menudo. Lo que pides por el chat no se toca.'));
 
     body.append(el('div', 'pfH', 'Variedad de artistas'));
-    const rv = el('div', 'pfR'); const sv = el('div', 'gSeg');
-    [['normal', 'Normal'], ['alta', 'Alta']].forEach(([v, t]) => {
-      const b = el('button', G.variedad === v ? 'p' : '', t); b.type = 'button';
-      b.onclick = () => { G.variedad = v; guardar(); redibujar(); }; sv.append(b);
-    });
-    rv.append(el('span', 'n', G.variedad === 'alta' ? 'No repito artista en el bloque ni en los 2 anteriores' : 'Como siempre'), sv); body.append(rv);
+    const rv = el('div', 'pfR');
+    const t = el('span', 'n', G.variedad === 'alta' ? 'Sin repetir artista en 3 bloques' : 'Como siempre'); t.style.whiteSpace = 'normal';
+    rv.append(t, UI.segmentos([['normal', 'Normal'], ['alta', 'Alta']], G.variedad, (v) => { G.variedad = v; guardar(); redibujar(); }));
+    body.append(rv);
 
     const { sin, con } = sinEstilo();
     if (sin.length || con.length) {
       body.append(el('div', 'pfH', 'Artistas sin estilo'));
       let nAuto = 0; try { nAuto = window.IcemanGeneros ? window.IcemanGeneros.estado().resueltos : 0; } catch (e) {}
-      body.append(el('p', 'pfNota', 'Los estilos se deducen solos (diccionario, géneros de Spotify y colaboraciones)' + (nAuto ? ': ' + nAuto + ' artistas clasificados en esta sesión' : '') + '. Solo hace falta revisar esto si algún artista te suena mal clasificado.'));
+      body.append(el('p', 'pfNota', 'Los estilos se deducen solos' + (nAuto ? ' (' + nAuto + ' artistas clasificados ahora)' : '') + '. Solo revisa esto si algún artista está mal clasificado.'));
       const ver = el('button', 'pfBig', verSin ? 'Ocultar artistas sin estilo' : 'Revisar artistas sin estilo (' + (sin.length + con.length) + ')'); ver.type = 'button';
       ver.onclick = () => { verSin = !verSin; redibujar(); };
       body.append(ver);
@@ -217,7 +220,9 @@
         sin.forEach((e) => body.append(fila(e)));
       }
     }
-  });
+  };
+  panelEstilos.tab = 'estilos';
+  (window.__pfExtras = window.__pfExtras || []).push(panelEstilos);
 
   window.IcemanGustos = { ajustes: () => JSON.parse(JSON.stringify(G)), marcar };
 })();

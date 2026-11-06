@@ -1,0 +1,32 @@
+:root{--ix-gear:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M19.14 12.94a7.4 7.4 0 0 0 .05-.94 7.4 7.4 0 0 0-.05-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.61-.22l-2.39.96a7.1 7.1 0 0 0-1.62-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.54c-.59.24-1.13.55-1.62.94l-2.39-.96a.5.5 0 0 0-.61.22L2.66 8.84a.5.5 0 0 0 .12.64l2.03 1.58a7.4 7.4 0 0 0-.05.94c0 .32.02.63.05.94l-2.03 1.58a.5.5 0 0 0-.12.64l1.92 3.32c.13.22.39.31.61.22l2.39-.96c.5.39 1.04.7 1.62.94l.36 2.54c.04.24.25.42.5.42h3.84c.25 0 .46-.18.5-.42l.36-2.54c.58-.24 1.12-.55 1.62-.94l2.39.96c.22.09.48 0 .61-.22l1.92-3.32a.5.5 0 0 0-.12-.64zM12 15.5A3.5 3.5 0 1 1 12 8.5a3.5 3.5 0 0 1 0 7z'/%3E%3C/svg%3E");--ix-chat:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M5 4.5h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-8l-4.5 3.5V17.5H5a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2z'/%3E%3C/svg%3E");--ix-ticket:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 7.5A1.5 1.5 0 0 1 4.5 6h15A1.5 1.5 0 0 1 21 7.5V10a2 2 0 0 0 0 4v2.5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 16.5V14a2 2 0 0 0 0-4z'/%3E%3C/svg%3E")}
+/* Interfaz (solo estilos + una barra de accesos): ajustes, conciertos y chat juntos abajo, con nombre. Se desactiva con ?tema=off */
+
+/* ===== Barra de accesos ===== */
+#dock{position:fixed;left:50%;bottom:calc(12px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:55;display:flex;gap:2px;padding:6px;border-radius:28px;
+  background:#0a1218d9;-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);box-shadow:0 16px 40px -10px #000d,inset 0 0 0 1px #ffffff26;transition:transform .28s ease,opacity .2s}
+#dock.oculto{transform:translate(-50%,150%);opacity:0;pointer-events:none}
+html body #dock button{position:static!important;inset:auto!important;width:78px;height:56px;margin:0;padding:0;border:0!important;border-radius:22px;background:none!important;box-shadow:none!important;
+  -webkit-backdrop-filter:none!important;backdrop-filter:none!important;display:flex!important;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  font-size:0!important;line-height:0!important;color:var(--escarcha,#8fb3bb)!important;transition:transform .15s,background .2s}
+html body #dock button::before{content:"";display:block;width:23px;height:23px;background:currentColor;-webkit-mask:var(--i) center/contain no-repeat;mask:var(--i) center/contain no-repeat}
+html body #dock button::after{content:attr(data-l);font:600 11.5px/1 system-ui,-apple-system,sans-serif;letter-spacing:.01em}
+html body #dock button:hover{background:#ffffff14!important;color:var(--hielo,#eaf6f8)!important}
+html body #dock button:active{transform:scale(.94)}
+html body #dock #pfBtn{--i:var(--ix-gear);order:1}
+html body #dock #tkBtn{--i:var(--ix-ticket);order:2}
+html body #dock #asBtn{--i:var(--ix-chat);order:3;color:#04161a!important;background:linear-gradient(160deg,#27c4d4,#0e8f9d)!important;box-shadow:0 8px 22px -8px #12a9b8cc,inset 0 1px 0 #ffffff55!important}
+html body #dock #asBtn:hover{filter:brightness(1.08)}
+html body #dock button:focus-visible{outline:2px solid #8ff4ff;outline-offset:2px}
+html body{padding-bottom:calc(112px + env(safe-area-inset-bottom))}
+html body #pfToast{bottom:calc(96px + env(safe-area-inset-bottom))}
+@media (max-width:360px){html body #dock button{width:68px}}
+@media (prefers-reduced-motion:reduce){#dock{transition:none}}
+
+/* ===== Hojas (ajustes, chat, conciertos): mismo aspecto ===== */
+#asPanel,#tkPanel{background:#0d141bf5!important;border-radius:26px 26px 0 0!important}
+#asPanel::before,#tkPanel::before{content:"";position:absolute;left:50%;top:7px;width:38px;height:4px;margin-left:-19px;border-radius:2px;background:#ffffff3a}
+#asHead,#tkPanel .h{padding:20px 16px 8px 18px!important;font:700 19px/1 var(--f,system-ui)!important}
+#asHead span,#tkPanel .h span{display:flex;align-items:center;gap:9px}
+#asHead span::before,#tkPanel .h span::before{content:"";width:22px;height:22px;background:var(--ac);-webkit-mask:var(--ix-chat) center/contain no-repeat;mask:var(--ix-chat) center/contain no-repeat}
+#tkPanel .h span::before{-webkit-mask-image:var(--ix-ticket);mask-image:var(--ix-ticket)}
+#tkPanel .h button{width:36px;height:36px;padding:0;font-size:17px;border-radius:50%;background:#ffffff1f}

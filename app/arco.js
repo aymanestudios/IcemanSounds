@@ -103,22 +103,26 @@
     asignar('decir', 'window.__arcoDecir');
   }
 
-  // ---------- Panel ----------
-  (window.__pfExtras = window.__pfExtras || []).push(function (body, el) {
+  // ---------- Panel (pestaña DJ) ----------
+  const css = document.createElement('style');
+  css.textContent = '.pfAmb{padding:8px 15px;border-radius:999px;font-size:13.5px;font-weight:600;background:#ffffff14;color:var(--tx);box-shadow:inset 0 0 0 1px #ffffff14}.pfAmb.on{background:var(--ac);color:#04161a;box-shadow:none}';
+  document.head.append(css);
+  const panel = function (body, el) {
     body.append(el('div', 'pfH', 'Ambiente de la sesión'));
-    const fila = el('div', 'pfSeg'); fila.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;margin:6px 0';
+    const fila = el('div', 'pfChips');
     MODOS.forEach(([k, nom]) => {
-      const b = el('button', 'pfBig' + (modo() === k ? ' on' : ''), nom); b.type = 'button';
-      if (modo() === k) b.style.outline = '2px solid var(--ac,#12a9b8)';
+      const b = el('button', 'pfAmb' + (modo() === k ? ' on' : ''), nom); b.type = 'button';
       b.onclick = () => { LS.arco = k; A = nueva(); A.modo = k; guardar(); if (window.__pfRedibujar) window.__pfRedibujar(); };
       fila.append(b);
     });
     body.append(fila);
     const m = modo();
     body.append(el('p', 'pfNota', m === 'libre'
-      ? 'Libre: el DJ no fuerza ninguna energía. Elige otro ambiente y irá subiendo o bajando poco a poco. La energía se calcula por estilo, de forma aproximada.'
-      : 'Bloques en este ambiente: ' + A.n + (A.meta != null ? ' · energía objetivo ahora: ' + Math.round(A.meta * 100) + ' %' : '') + ' · cambios de estilo para encajar: ' + A.cambios));
-  });
+      ? 'Libre: el DJ no fuerza ninguna energía. Elige otro y irá subiendo o bajando poco a poco (la energía se calcula por estilo, de forma aproximada).'
+      : 'Bloques en este ambiente: ' + A.n + (A.meta != null ? ' · energía objetivo: ' + Math.round(A.meta * 100) + ' %' : '') + ' · cambios para encajar: ' + A.cambios));
+  };
+  panel.tab = 'dj';
+  (window.__pfExtras = window.__pfExtras || []).push(panel);
 
   window.IcemanArco = { ENERGIA, modo, objetivo, planificar, memoria: () => JSON.parse(JSON.stringify(A)), reiniciar: () => { A = nueva(); guardar(); } };
 })();

@@ -180,19 +180,18 @@
     asignar('decir', 'window.__cerebroDecir');
   }
 
-  // ---------- Panel: resumen de la sesión + interruptor ----------
-  (window.__pfExtras = window.__pfExtras || []).push(function (body, el) {
+  // ---------- Panel: interruptor (pestaña DJ) + resumen (pestaña Sesión) ----------
+  const panelDJ = function (body, el) {
+    body.append(window.__pfUI.interruptor('Que el DJ planifique la sesión', 'Varía de estilo, mete descubrimientos y alguna canción antigua.', !apagado(), (v) => { LS.cerebro = v ? 'on' : 'off'; }));
+  };
+  panelDJ.tab = 'dj';
+  const panelSesion = function (body, el) {
     body.append(el('div', 'pfH', 'El DJ en esta sesión'));
-    const fila = el('label', 'pfR'); const ck = document.createElement('input'); ck.type = 'checkbox'; ck.checked = !apagado();
-    ck.onchange = () => { LS.cerebro = ck.checked ? 'on' : 'off'; };
-    const tx = el('span', 'n', 'Que el DJ planifique la sesión (variar de estilo, descubrimientos y antiguas)'); tx.style.whiteSpace = 'normal';
-    fila.append(ck, tx); body.append(fila);
     const c = conteoEstilos(), ks = Object.keys(c).sort((a, b) => c[b] - c[a]);
-    const grid = el('div', 'pfGrid');
-    [['Bloques', M.n], ['Descubrimientos', M.d], ['Cambios de rumbo', M.cambios], ['Estilos', ks.length]].forEach(([k, v]) => { const x = el('div', 'pfS'); x.append(el('b', '', String(v)), el('span', '', k)); grid.append(x); });
-    body.append(grid);
-    if (ks.length) body.append(el('p', 'pfNota', ks.map((k) => (NOMBRE[k] || k) + ' ×' + c[k]).join(' · ')));
-  });
+    body.append(el('p', 'pfNota', M.n + ' bloques · ' + M.d + ' descubrimientos · ' + M.cambios + ' cambios de rumbo' + (ks.length ? ' — ' + ks.map((k) => (NOMBRE[k] || k) + ' ×' + c[k]).join(', ') : '')));
+  };
+  panelSesion.tab = 'sesion';
+  (window.__pfExtras = window.__pfExtras || []).push(panelDJ, panelSesion);
 
   window.IcemanCerebro = { memoria: () => JSON.parse(JSON.stringify(M)), planificar, olvidar: () => { M = nueva(); guardar(); } };
 })();

@@ -38,7 +38,7 @@
   btn.id = 'tkBtn'; btn.type = 'button'; btn.title = 'Conciertos'; btn.textContent = '🎫'; btn.hidden = true;
   const panel = document.createElement('div');
   panel.id = 'tkPanel';
-  panel.innerHTML = '<div class="h"><span>🎫 Conciertos de tus artistas</span><button type="button" id="tkX" aria-label="Cerrar">✕</button></div>' +
+  panel.innerHTML = '<div class="h"><span>Conciertos de tus artistas</span><button type="button" id="tkX" aria-label="Cerrar">✕</button></div>' +
     '<div class="f"><select id="tkPais"></select><input id="tkCiudad" placeholder="Ciudad (opcional)" maxlength="60"></div>' +
     '<button type="button" class="go" id="tkGo">Buscar conciertos</button><div id="tkList"><div class="m">Pulsa buscar y miro los próximos conciertos de tus artistas más escuchados.</div></div>';
   document.body.append(btn, panel);

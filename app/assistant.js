@@ -42,7 +42,7 @@
   btn.id = 'asBtn'; btn.title = 'Asistente'; btn.textContent = '💬'; btn.hidden = true;
   const panel = document.createElement('div');
   panel.id = 'asPanel';
-  panel.innerHTML = `<div id="asHead"><span>🧊 Asistente</span><button type="button" id="asX" aria-label="Cerrar">✕</button></div>
+  panel.innerHTML = `<div id="asHead"><span>Asistente</span><button type="button" id="asX" aria-label="Cerrar">✕</button></div>
     <div id="asMsgs"></div><div id="asChips"></div>
     <form id="asForm" autocomplete="off"><input id="asIn" placeholder="Pídeme música o controla la radio…" maxlength="300"><button class="p" id="asSend" type="submit" aria-label="Enviar">➤</button></form>`;
   document.body.append(btn, panel);
@@ -306,5 +306,5 @@
 
   // Módulos adicionales (privacidad, modo móvil y preferencias). Si no cargan, el asistente sigue funcionando.
   // (movil.js va primero: en móvil sustituye el reproductor, y el perfil debe engancharse al definitivo)
-  ['bienvenida.js', 'privacidad.js', 'tema.js', 'movil.js', 'afro.js', 'bloques.js', 'profile.js', 'favoritos.js', 'dj.js', 'generos.js', 'gustos.js', 'cerebro.js', 'arco.js', 'conciertos.js', 'artista.js', 'mini.js'].forEach((f) => { const s = document.createElement('script'); s.async = false; s.src = SRV() + '/app/' + f; document.body.append(s); });
+  ['bienvenida.js', 'privacidad.js', 'tema.js', 'movil.js', 'afro.js', 'bloques.js', 'profile.js', 'favoritos.js', 'dj.js', 'generos.js', 'gustos.js', 'cerebro.js', 'arco.js', 'conciertos.js', 'artista.js', 'mini.js', 'interfaz.js'].forEach((f) => { const s = document.createElement('script'); s.async = false; s.src = SRV() + '/app/' + f; document.body.append(s); });
 })();
