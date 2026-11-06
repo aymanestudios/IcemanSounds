@@ -30,6 +30,8 @@
   .asM.n{align-self:center;background:none;color:var(--mu);font-size:13px;text-align:center}
   #asChips{display:flex;gap:8px;overflow-x:auto;padding:6px 14px}
   #asChips button{white-space:nowrap;font-size:13px;padding:8px 12px}
+  .asAlb{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:8px}
+  .asAlb button{font-size:13px;padding:8px 12px;white-space:normal}
   #asForm{display:flex;gap:8px;padding:8px 14px 12px}
   #asIn{flex:1;font-size:16px;color:var(--tx);background:#ffffff1f;border:1px solid #ffffff22;border-radius:999px;padding:11px 16px;outline:none}
   #asForm button{width:46px;height:46px;padding:0}`;
@@ -122,32 +124,87 @@
     return uris.length;
   }
 
+
+  // ---------- Búsqueda flexible (álbumes y canciones de un artista) ----------
+  // Claude propone nombres de memoria y puede fallar en una palabra: aquí se comparan "por parecido", no letra por letra.
+  const RUIDO = new Set(['deluxe', 'edition', 'edicion', 'version', 'remastered', 'remaster', 'expanded', 'anniversary', 'aniversario', 'bonus', 'special', 'platinum', 'complete', 'the', 'ep', 'lp']);
+  const toks = (x) => { const t = norm(x).split(' ').filter(Boolean); const f = t.filter((w) => !RUIDO.has(w)); return f.length ? f : t; };
+  const parecido = (a, b) => { const x = new Set(toks(a)), y = new Set(toks(b)); if (!x.size || !y.size) return 0; let i = 0; x.forEach((w) => { if (y.has(w)) i++; }); return i / Math.max(x.size, y.size); };
+  const delArtistaDe = (artista) => { const q = norm(artista || ''); return (x) => !q || (x.artists || []).some((ar) => { const n = norm(ar.name); return n === q || n.includes(q) || (n.length >= 4 && q.includes(n)); }); };
+  const buscarTipo = async (q, tipo) => { const r = await get('api')('/search?type=' + tipo + '&limit=10&q=' + encodeURIComponent(q)); return ((r && r[tipo + 's'] && r[tipo + 's'].items) || []).filter((x) => x && x.id); };
+  let ultimoTexto = '';
+  const MOOD = /triste|sensible|melanc|llor|desamor|lent[ao]s?\b|tranquil|relaj|suave|romantic|agresiv|duras?\b|duros?\b|energ|fuerte|\brap\b|bailar|fiesta|perre|chill|feliz|alegr|motiv/;
+
+  // Devuelve { alb, catalogo }: el álbum que mejor encaja (o null) y los álbumes del artista (para ofrecérselos al usuario)
+  async function hallarAlbum(album, artista) {
+    const delArt = delArtistaDe(artista);
+    const ultimo = /^(ultimo|ultima|nuevo|nueva|reciente|latest|newest)$/.test(norm(album));
+    let catalogo = [];
+    if (!ultimo) {
+      const vistos = new Map();
+      for (const q of ['album:"' + album + '"' + (artista ? ' artist:"' + artista + '"' : ''), album + (artista ? ' ' + artista : '')]) {
+        (await buscarTipo(q, 'album').catch(() => [])).filter(delArt).forEach((x) => vistos.set(x.id, x));
+        const buenos = [...vistos.values()].map((x) => [parecido(x.name, album), x]).filter(([sc]) => sc >= 0.6);
+        if (buenos.length) { buenos.sort((a, b) => b[0] - a[0] || (a[1].album_type === 'album' ? 0 : 1) - (b[1].album_type === 'album' ? 0 : 1) || a[1].name.length - b[1].name.length); return { alb: buenos[0][1], catalogo: [] }; }
+      }
+    }
+    if (artista) {
+      const ars = await buscarTipo(artista, 'artist').catch(() => []);
+      const q = norm(artista), ar = ars.find((x) => norm(x.name) === q) || ars.find((x) => norm(x.name).includes(q) || q.includes(norm(x.name))) || null;
+      if (ar) {
+        let r; try { r = await get('api')('/artists/' + ar.id + '/albums?include_groups=album,single&limit=50'); } catch (e) { r = await get('api')('/artists/' + ar.id + '/albums?include_groups=album,single&limit=20').catch(() => null); }
+        const vistos = new Set();
+        catalogo = ((r && r.items) || []).filter((x) => x && x.id).sort((a, b) => String(b.release_date).localeCompare(String(a.release_date))).filter((x) => { const k = norm(x.name); if (vistos.has(k)) return false; vistos.add(k); return true; });
+        if (ultimo) { const alb = catalogo.find((x) => x.album_type === 'album') || catalogo[0]; return { alb: alb || null, catalogo }; }
+        const buenos = catalogo.map((x) => [parecido(x.name, album), x]).filter(([sc]) => sc >= 0.6).sort((a, b) => b[0] - a[0]);
+        if (buenos.length) return { alb: buenos[0][1], catalogo };
+      }
+    }
+    return { alb: null, catalogo };
+  }
+  async function ponerAlbum(alb, count) {
+    const r = await get('api')('/albums/' + alb.id + '/tracks?limit=50');
+    const t = ((r && r.items) || []).filter(esTema);
+    if (!t.length) throw new Error('No pude leer las canciones de ese álbum.');
+    const n = await tocar(t.slice(0, count || 12));
+    return `Poniendo "${alb.name}" (${n} canciones, en orden)` + (!count && t.length > 12 ? '; luego sigue la radio' : '');
+  }
+
   // ---------- Ejecutor de acciones (lista cerrada, ya validada por el servidor) ----------
   const EJECUTAR = {
     async play_artist(a) {
-      const quiero = norm(a.artist);
-      const delArtista = (x) => x.artists.some((ar) => norm(ar.name) === quiero || norm(ar.name).includes(quiero));
-      // Si pides un tipo de canciones de ese artista ("las más de rap y agresivas"), Claude propone títulos que él conoce
+      const delArtista = delArtistaDe(a.artist), quiero = norm(a.artist);
+      // Si pides un tipo de canciones de ese artista ("las más tristes", "las de rap"), Claude propone títulos que él conoce
       // (solo ha visto lo que tú escribiste) y aquí se comprueba en Spotify cuáles existen de verdad. Solo suenan esas.
+      let propias = [];
       if (a.songs && a.songs.length) {
-        const MAL = /remix|version|live|en vivo|instrumental|karaoke|acoustic|acustic/;
+        const MAL = /remix|version|live|en vivo|instrumental|karaoke|acoustic|acustic|sped|slowed/;
         const hallar = async (titulo) => {
-          const nt = norm(titulo);
-          const r = (await buscar('track:"' + titulo + '" artist:"' + a.artist + '"', 1)).filter(delArtista);
-          return r.find((x) => norm(x.name) === nt) || r.find((x) => norm(x.name).startsWith(nt + ' ') && (MAL.test(nt) || !MAL.test(norm(x.name)))) || null;
+          const malo = MAL.test(norm(titulo));
+          for (const q of ['track:"' + titulo + '" artist:"' + a.artist + '"', titulo + ' ' + a.artist]) {
+            const r = (await buscar(q, 1).catch(() => [])).filter(delArtista).filter((x) => malo || !MAL.test(norm(x.name)));
+            const b = r.map((x) => [parecido(x.name, titulo), x]).filter(([sc]) => sc >= 0.75).sort((x, y) => y[0] - x[0])[0];
+            if (b) return b[1];
+          }
+          return null;
         };
         const halladas = [];
         for (let i = 0; i < a.songs.length; i += 5) {
           const r = await Promise.all(a.songs.slice(i, i + 5).map((t) => hallar(t).catch(() => null)));
           halladas.push(...r.filter(Boolean));
         }
-        const t = unicas(halladas);
-        if (t.length >= 3) { const n = await tocar(mezclar(t)); return `Poniendo ${a.artist}: ${n} de las ${a.songs.length} que encajan (solo suenan las que existen en Spotify)`; }
-        burbuja('n', `⚠️ No he localizado suficientes canciones de ese rollo de ${a.artist}; te pongo el artista en general.`);
+        propias = unicas(halladas);
+        if (propias.length >= 3) { const n = await tocar(mezclar(propias)); return `Poniendo ${a.artist}: ${n} de las ${a.songs.length} que encajan (solo suenan las que existen en Spotify)`; }
+        burbuja('n', propias.length
+          ? `⚠️ Solo pude localizar ${propias.length} de ese rollo de ${a.artist}; completo con el resto de su música.`
+          : `⚠️ No he localizado canciones de ese rollo de ${a.artist}; te pongo su música en general.`);
+      } else if (MOOD.test(norm(ultimoTexto))) {
+        burbuja('n', `ℹ️ No sé separar las canciones de ${a.artist} por rollo, así que te pongo su música en general.`);
       }
       let t = (await buscar('artist:"' + a.artist + '"', 2)).filter(delArtista);
       if (!t.length) t = (await buscar(a.artist, 2)).filter((x) => x.artists.some((ar) => norm(ar.name).includes(quiero)));
-      const n = await tocar(mezclar(t).slice(0, 10)); return `Poniendo ${a.artist} (${n} canciones)`;
+      const resto = mezclar(t.filter((x) => !propias.some((p) => p.uri === x.uri)));
+      const n = await tocar(propias.length ? [...propias, ...resto].slice(0, 8) : resto.slice(0, 10)); return `Poniendo ${a.artist} (${n} canciones)`;
     },
     async play_song(a) {
       const t = await buscar(a.query, 1);
@@ -155,21 +212,21 @@
       await tocar(t.slice(0, 1)); return `Poniendo ${t[0].name} de ${t[0].artists[0].name}`;
     },
     async play_album(a) {
-      // Álbum de un artista: se busca en Spotify, se leen sus canciones y suenan en orden. Luego sigue la radio con el DJ.
-      const nom = norm(a.album), quiero = norm(a.artist || '');
-      const buscarAlbum = async (q) => { const r = await get('api')('/search?type=album&limit=10&q=' + encodeURIComponent(q)); return ((r && r.albums && r.albums.items) || []).filter((x) => x && x.id); };
-      const delArtista = (x) => !quiero || (x.artists || []).some((ar) => norm(ar.name).includes(quiero) || quiero.includes(norm(ar.name)));
-      let c = (await buscarAlbum('album:"' + a.album + '"' + (a.artist ? ' artist:"' + a.artist + '"' : ''))).filter(delArtista);
-      if (!c.length) c = (await buscarAlbum(a.album + (a.artist ? ' ' + a.artist : ''))).filter(delArtista);
-      const exacto = c.filter((x) => norm(x.name) === nom), parecido = c.filter((x) => norm(x.name).includes(nom) || nom.includes(norm(x.name)));
-      const lista = (exacto.length ? exacto : parecido).sort((x, y) => (x.album_type === 'album' ? 0 : 1) - (y.album_type === 'album' ? 0 : 1) || x.name.length - y.name.length);
-      if (!lista.length) throw new Error('No encontré el álbum "' + a.album + '"' + (a.artist ? ' de ' + a.artist : '') + '. ¿Me dices el nombre exacto?');
-      const alb = lista[0];
-      const r = await get('api')('/albums/' + alb.id + '/tracks?limit=50');
-      const t = ((r && r.items) || []).filter(esTema);
-      if (!t.length) throw new Error('No pude leer las canciones de ese álbum.');
-      const n = await tocar(t.slice(0, a.count || 12));
-      return `Poniendo "${alb.name}" (${n} canciones, en orden)` + (!a.count && t.length > 12 ? '; luego sigue la radio' : '');
+      // Álbum de un artista: búsqueda flexible; si no lo encuentra, le enseña al usuario los álbumes del artista para elegir.
+      const { alb, catalogo } = await hallarAlbum(a.album, a.artist);
+      if (alb) return await ponerAlbum(alb, a.count);
+      if (catalogo.length) {
+        const caja = burbuja('n', `No encontré "${a.album}" de ${a.artist}. ¿Es alguno de estos?`);
+        const fila = document.createElement('div'); fila.className = 'asAlb';
+        catalogo.slice(0, 8).forEach((x) => {
+          const b = document.createElement('button'); b.type = 'button'; b.textContent = x.name.length > 34 ? x.name.slice(0, 33) + '…' : x.name;
+          b.onclick = async () => { fila.querySelectorAll('button').forEach((y) => (y.disabled = true)); try { burbuja('n', '✓ ' + (await ponerAlbum(x, a.count))); } catch (e) { burbuja('n', '⚠️ ' + String(e.message).slice(0, 160)); } };
+          fila.append(b);
+        });
+        caja.append(fila); msgs.scrollTop = msgs.scrollHeight;
+        return null;
+      }
+      throw new Error('No encontré el álbum "' + a.album + '"' + (a.artist ? ' de ' + a.artist : '') + '. ¿Me dices el artista y el nombre exacto?');
     },
     async play_vibe(a) {
       // Fase 0: sin enviar canciones a ninguna IA. Reglas locales: la actividad que dices -> estilos que suelen encajar.
@@ -228,7 +285,7 @@
     texto = (texto || '').trim();
     if (!texto || ocupado) return;
     ocupado = true; send.disabled = true; input.value = '';
-    burbuja('u', texto);
+    burbuja('u', texto); ultimoTexto = texto;
     const espera = burbuja('a', '…');
     try {
       const r = await fetch(SRV() + '/assistant', { method: 'POST', headers: await authH(), body: JSON.stringify({ mensaje: texto, historial }) });
